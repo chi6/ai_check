@@ -1,0 +1,14 @@
+fastapi==0.104.1
+uvicorn==0.23.2
+python-multipart==0.0.6
+pydantic==2.4.2
+pymupdf==1.23.5
+python-docx==1.0.1
+httpx==0.25.1
+python-jose==3.3.0
+passlib==1.7.4
+sqlalchemy==2.0.23
+aiofiles==23.2.1
+bcrypt==4.0.1
+matplotlib==3.7.2
+volcenginesdkarkruntime==0.1.0 

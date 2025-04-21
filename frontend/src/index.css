@@ -1,0 +1,101 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.site-layout-content {
+  min-height: 280px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 4px;
+  margin: 24px 0;
+}
+
+.logo {
+  float: left;
+  height: 31px;
+  margin: 16px 24px 16px 0;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.login-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.auth-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 40px;
+}
+
+.file-uploader {
+  border: 2px dashed #d9d9d9;
+  border-radius: 4px;
+  padding: 30px;
+  text-align: center;
+  background: #fafafa;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: border-color 0.3s;
+}
+
+.file-uploader:hover {
+  border-color: #1890ff;
+}
+
+.result-card {
+  margin-bottom: 20px;
+}
+
+.paragraph-card {
+  margin-bottom: 16px;
+  border-left: 3px solid;
+  padding-left: 12px;
+}
+
+.paragraph-ai {
+  border-color: #ff4d4f;
+}
+
+.paragraph-human {
+  border-color: #52c41a;
+}
+
+.result-summary {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.upload-list {
+  margin-top: 20px;
+}
+
+.header-user-info {
+  color: #fff;
+  margin-right: 16px;
+}
+
+.detection-progress {
+  margin: 20px 0;
+}
+
+.chart-container {
+  height: 300px;
+  margin: 20px 0;
+} 
