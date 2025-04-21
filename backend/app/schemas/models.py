@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -13,12 +13,28 @@ class ParagraphAnalysis(BaseModel):
     paragraph: str
     ai_generated: bool
     reason: str
+    metrics: Optional[Dict[str, Any]] = None
+    confidence: Optional[float] = None
+
+class DetailedAnalysisResult(BaseModel):
+    """文本AI检测的详细分析结果"""
+    is_ai_generated: Optional[bool] = None
+    confidence: Optional[float] = None
+    reason: Optional[str] = None
+    models_results: Optional[Dict[str, Any]] = None
+    # 保留原有字段，兼容旧版本
+    perplexity: Optional[float] = None
+    burstiness: Optional[float] = None
+    syntax_metrics: Optional[Dict[str, Any]] = None
+    coherence_metrics: Optional[Dict[str, Any]] = None
+    style_metrics: Optional[Dict[str, Any]] = None
 
 class DetectionResult(BaseModel):
     task_id: str
     status: TaskStatus
     ai_generated_percentage: Optional[float] = None
     details: Optional[List[ParagraphAnalysis]] = None
+    overall_analysis: Optional[DetailedAnalysisResult] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

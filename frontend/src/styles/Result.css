@@ -1,0 +1,152 @@
+.result-page {
+  margin-bottom: 30px;
+}
+
+.result-card {
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.result-summary {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.paragraph-card {
+  width: 100%;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.paragraph-ai {
+  border-left: 4px solid #ff4d4f;
+}
+
+.paragraph-human {
+  border-left: 4px solid #52c41a;
+}
+
+.paragraph-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.template-description {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* 模板预览样式 */
+.template-preview {
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  padding: 15px;
+  max-width: 100%;
+}
+
+.preview-header {
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eaeaea;
+  margin-bottom: 15px;
+}
+
+.preview-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.preview-section {
+  margin-bottom: 20px;
+}
+
+.preview-section h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.preview-line {
+  height: 8px;
+  background-color: #e0e0e0;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.preview-line.short {
+  width: 60%;
+}
+
+.preview-chart {
+  height: 120px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.preview-chart.simple {
+  height: 80px;
+}
+
+.preview-block {
+  height: 40px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.preview-paragraph {
+  margin-bottom: 15px;
+}
+
+.preview-paragraph-header {
+  height: 24px;
+  border-radius: 4px 4px 0 0;
+  margin-bottom: 2px;
+}
+
+.preview-paragraph-header.ai {
+  background-color: rgba(255, 77, 79, 0.2);
+}
+
+.preview-paragraph-header.human {
+  background-color: rgba(82, 196, 26, 0.2);
+}
+
+.preview-paragraph-content {
+  height: 40px;
+  background-color: #e8e8e8;
+  border-radius: 0 0 4px 4px;
+}
+
+.preview-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.preview-stats::before, .preview-stats::after {
+  content: '';
+  display: block;
+  height: 30px;
+  width: 45%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+/* 自定义标签样式 */
+.custom-tag {
+  margin-right: 8px;
+}
+
+/* 响应式调整 */
+@media (max-width: 576px) {
+  .result-summary {
+    padding: 5px 0;
+  }
+  
+  .template-preview {
+    padding: 10px;
+  }
+} 

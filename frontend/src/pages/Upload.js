@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Upload, Button, Typography, Card, message, Steps, Progress, Space, Alert } from 'antd';
-import { InboxOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert } from 'antd';
+import { 
+  InboxOutlined, 
+  FileTextOutlined, 
+  CheckCircleOutlined, 
+  CloseCircleOutlined
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { uploadApi, detectApi } from '../api/api';
+import { showSuccess, showWarning, showError, notifySuccess, notifyError, notifyInfo } from '../utils/notification';
 
 const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
@@ -16,6 +22,7 @@ const UploadPage = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [detectingFiles, setDetectingFiles] = useState([]);
   
   const navigate = useNavigate();
 
@@ -27,14 +34,14 @@ const UploadPage = () => {
       // 检查文件类型
       const isValidType = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type);
       if (!isValidType) {
-        message.error('只支持PDF、DOCX和TXT格式的文件！');
+        showError('只支持PDF、DOCX和TXT格式的文件！');
         return Upload.LIST_IGNORE;
       }
       
       // 检查文件大小 (50MB)
       const isValidSize = file.size / 1024 / 1024 < 50;
       if (!isValidSize) {
-        message.error('文件大小不能超过50MB！');
+        showError('文件大小不能超过50MB！');
         return Upload.LIST_IGNORE;
       }
       
@@ -50,7 +57,7 @@ const UploadPage = () => {
 
   const handleUpload = async () => {
     if (fileList.length === 0) {
-      message.warning('请先选择要上传的文件！');
+      showWarning('请先选择要上传的文件！');
       return;
     }
     
@@ -77,27 +84,64 @@ const UploadPage = () => {
       
       clearInterval(progressInterval);
       setProgress(100);
-      setCurrentStep(1);
-      setUploadedTaskId(result.task_id);
       
-      message.success('文件上传成功！');
+      console.log('Upload result:', result);
+      
+      // 验证任务ID
+      if (!result || !result.task_id) {
+        throw new Error('上传成功但未返回有效的任务ID');
+      }
+      
+      if (typeof result.task_id !== 'string') {
+        console.error('Server returned non-string task ID:', result.task_id);
+        // 尝试转换为字符串
+        const stringTaskId = String(result.task_id);
+        console.log('Converted task ID to string:', stringTaskId);
+        setUploadedTaskId(stringTaskId);
+      } else {
+        setUploadedTaskId(result.task_id);
+      }
+      
+      setCurrentStep(1);
+      showSuccess('文件上传成功！');
     } catch (error) {
       console.error('上传失败:', error);
-      setError('文件上传失败：' + (error.response?.data?.detail || '请稍后再试'));
+      setError('文件上传失败：' + (error.response?.data?.detail || error.message || '请稍后再试'));
     } finally {
       setUploading(false);
     }
   };
 
-  const handleStartDetection = async () => {
-    if (!uploadedTaskId) return;
+  const handleStartDetection = async (taskId = uploadedTaskId, fileIndex = null) => {
+    if (!taskId) {
+      setError('任务ID不存在，请先上传文件');
+      return;
+    }
+    
+    if (typeof taskId !== 'string') {
+      console.error('Invalid task ID type:', typeof taskId, taskId);
+      setError('任务ID类型错误，请重新上传文件');
+      return;
+    }
+    
+    console.log('Starting detection for task ID:', taskId);
     
     setDetecting(true);
     setError(null);
     
     try {
       // 开始检测
-      await detectApi.startDetection(uploadedTaskId);
+      await detectApi.startDetection(taskId);
+      
+      // 如果是批量检测中的一个文件，更新文件状态
+      if (fileIndex !== null) {
+        const updatedFiles = [...detectingFiles];
+        updatedFiles[fileIndex] = {
+          ...updatedFiles[fileIndex],
+          status: 'detecting'
+        };
+        setDetectingFiles(updatedFiles);
+      }
       
       // 检测进度轮询
       setProgress(0);
@@ -113,40 +157,113 @@ const UploadPage = () => {
       // 轮询检测状态
       let statusCheckInterval = setInterval(async () => {
         try {
-          const result = await detectApi.getDetectionStatus(uploadedTaskId);
+          const result = await detectApi.getDetectionStatus(taskId);
           if (result.status === 'completed') {
             clearInterval(statusCheckInterval);
             clearInterval(progressInterval);
             setProgress(100);
-            setCurrentStep(2);
-            message.success('检测完成！');
-            // 导航到结果页面
-            setTimeout(() => {
-              navigate(`/result/${uploadedTaskId}`);
-            }, 1000);
+            
+            // 如果是批量检测中的一个文件，更新文件状态
+            if (fileIndex !== null) {
+              const updatedFiles = [...detectingFiles];
+              updatedFiles[fileIndex] = {
+                ...updatedFiles[fileIndex],
+                status: 'completed'
+              };
+              setDetectingFiles(updatedFiles);
+              notifySuccess('检测完成', `文件 "${updatedFiles[fileIndex].name}" 检测已完成`);
+            } else {
+              setCurrentStep(2);
+              showSuccess('检测完成！');
+              // 导航到结果页面
+              setTimeout(() => {
+                navigate(`/result/${taskId}`);
+              }, 1000);
+            }
           } else if (result.status === 'failed') {
             clearInterval(statusCheckInterval);
             clearInterval(progressInterval);
-            setError('检测失败，请重试！');
+            
+            // 如果是批量检测中的一个文件，更新文件状态
+            if (fileIndex !== null) {
+              const updatedFiles = [...detectingFiles];
+              updatedFiles[fileIndex] = {
+                ...updatedFiles[fileIndex],
+                status: 'failed'
+              };
+              setDetectingFiles(updatedFiles);
+              notifyError('检测失败', `文件 "${updatedFiles[fileIndex].name}" 检测失败`);
+            } else {
+              setError('检测失败，请重试！');
+            }
           }
         } catch (error) {
           console.error('获取检测状态失败:', error);
           clearInterval(statusCheckInterval);
           clearInterval(progressInterval);
-          setError('获取检测状态失败，请刷新页面重试');
+          
+          // 如果是批量检测中的一个文件，更新文件状态
+          if (fileIndex !== null) {
+            const updatedFiles = [...detectingFiles];
+            updatedFiles[fileIndex] = {
+              ...updatedFiles[fileIndex],
+              status: 'failed'
+            };
+            setDetectingFiles(updatedFiles);
+            notifyError('检测状态获取失败', `文件 "${updatedFiles[fileIndex].name}" 状态获取失败`);
+          } else {
+            setError('获取检测状态失败，请刷新页面重试');
+          }
         }
       }, 3000);
       
     } catch (error) {
       console.error('开始检测失败:', error);
-      setError('开始检测失败：' + (error.response?.data?.detail || '请稍后再试'));
+      
+      // 如果是批量检测中的一个文件，更新文件状态
+      if (fileIndex !== null) {
+        const updatedFiles = [...detectingFiles];
+        updatedFiles[fileIndex] = {
+          ...updatedFiles[fileIndex],
+          status: 'failed'
+        };
+        setDetectingFiles(updatedFiles);
+        notifyError('检测启动失败', `文件 "${updatedFiles[fileIndex].name}" 检测启动失败`);
+      } else {
+        setError('开始检测失败：' + (error.response?.data?.detail || '请稍后再试'));
+      }
     } finally {
-      setDetecting(false);
+      if (fileIndex === null) {
+        setDetecting(false);
+      }
     }
   };
   
   const handleViewResult = () => {
     navigate(`/result/${uploadedTaskId}`);
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const handleStartAllDetection = async () => {
+    const uploadedFiles = detectingFiles.filter(file => file.status === 'uploaded');
+    
+    if (uploadedFiles.length === 0) {
+      showWarning('没有可检测的文件');
+      return;
+    }
+    
+    notifyInfo('批量检测开始', `开始检测 ${uploadedFiles.length} 个文件`);
+    
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const file = uploadedFiles[i];
+      const index = detectingFiles.findIndex(item => item.taskId === file.taskId);
+      
+      if (index !== -1) {
+        await handleStartDetection(file.taskId, index);
+        // 添加短暂延时，避免同时发起太多请求
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   };
 
   const steps = [
@@ -237,7 +354,7 @@ const UploadPage = () => {
               <Button 
                 type="primary" 
                 size="large" 
-                onClick={handleStartDetection} 
+                onClick={() => handleStartDetection(uploadedTaskId)} 
                 loading={detecting}
               >
                 开始检测

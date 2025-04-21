@@ -41,10 +41,58 @@
   min-height: 100vh;
 }
 
+/* 响应式内容区域 */
+.responsive-content {
+  margin-top: 64px;
+  transition: all 0.3s;
+}
+
+/* 对不同屏幕尺寸设置不同的内容padding */
+@media (max-width: 576px) {
+  .responsive-content {
+    padding: 0 10px;
+  }
+  .site-layout-content {
+    padding: 16px;
+    margin: 10px 0;
+  }
+}
+
+@media (min-width: 576px) and (max-width: 768px) {
+  .responsive-content {
+    padding: 0 20px;
+  }
+  .site-layout-content {
+    padding: 20px;
+    margin: 16px 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 992px) {
+  .responsive-content {
+    padding: 0 30px;
+  }
+  .site-layout-content {
+    padding: 24px;
+    margin: 16px 0;
+  }
+}
+
+@media (min-width: 992px) {
+  .responsive-content {
+    padding: 0 50px;
+  }
+  .site-layout-content {
+    padding: 24px;
+    margin: 24px 0;
+  }
+}
+
 .site-layout-content {
   background: #fff;
-  padding: 24px;
   min-height: 280px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .logo {

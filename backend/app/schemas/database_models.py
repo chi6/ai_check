@@ -26,6 +26,14 @@ class DetectionTask(Base):
     file_size = Column(Integer)
     status = Column(String)
     ai_generated_percentage = Column(Float, nullable=True)
+    
+    # 添加整体分析结果
+    overall_perplexity = Column(Float, nullable=True)
+    overall_burstiness = Column(Float, nullable=True)
+    overall_syntax_analysis = Column(String, nullable=True)  # JSON存储
+    overall_coherence_analysis = Column(String, nullable=True)  # JSON存储
+    overall_style_analysis = Column(String, nullable=True)  # JSON存储
+    
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     owner_id = Column(String, ForeignKey("users.id"))
@@ -40,6 +48,13 @@ class ParagraphResult(Base):
     paragraph = Column(Text)
     ai_generated = Column(Boolean)
     reason = Column(String)
+    
+    # 添加详细指标
+    perplexity = Column(Float, nullable=True)
+    burstiness = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    metrics_data = Column(String, nullable=True)  # JSON存储所有其他指标
+    
     task_id = Column(String, ForeignKey("detection_tasks.id"))
     
     task = relationship("DetectionTask", back_populates="paragraphs") 

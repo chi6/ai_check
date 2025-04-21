@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from ..schemas.models import DetectionResult, TaskStatus, ParagraphAnalysis
+from ..schemas.models import DetectionResult, TaskStatus, ParagraphAnalysis, DetailedAnalysisResult
 from ..schemas.database_models import DetectionTask, ParagraphResult, User
 from ..utils.database import get_db
 from ..services.file_service import extract_text, clean_up_task_files
 from ..services.ai_detection_service import detect_ai_content
 from ..services.auth import get_current_user
 from typing import List
+from ..services.detection_metrics import detection_metrics
+import json
 
 router = APIRouter()
 
@@ -32,19 +34,65 @@ async def get_detection_status(
             ParagraphResult.task_id == task_id
         ).all()
         
-        details = [
-            ParagraphAnalysis(
+        # 构建详细结果
+        details = []
+        for p in paragraph_results:
+            # 解析JSON格式的指标数据
+            metrics_data = {}
+            if p.metrics_data:
+                try:
+                    metrics_data = json.loads(p.metrics_data)
+                except Exception as e:
+                    print(f"解析指标数据失败: {str(e)}")
+            
+            # 创建包含详细指标的段落分析对象
+            details.append(ParagraphAnalysis(
                 paragraph=p.paragraph,
                 ai_generated=p.ai_generated,
-                reason=p.reason
-            ) for p in paragraph_results
-        ]
+                reason=p.reason,
+                confidence=p.confidence,
+                metrics=metrics_data
+            ))
+        
+        # 解析整体分析数据
+        overall_analysis = None
+        if task.overall_perplexity or task.overall_burstiness or hasattr(task, 'overall_analysis_result'):
+            try:
+                # 尝试使用新格式（如果数据库已更新）
+                if hasattr(task, 'overall_analysis_result') and task.overall_analysis_result:
+                    # 解析JSON数据
+                    analysis_data = json.loads(task.overall_analysis_result)
+                    overall_analysis = DetailedAnalysisResult(
+                        is_ai_generated=analysis_data.get("is_ai_generated"),
+                        confidence=analysis_data.get("confidence"),
+                        reason=analysis_data.get("reason"),
+                        models_results=analysis_data.get("models_results"),
+                        # 保持向后兼容
+                        perplexity=task.overall_perplexity,
+                        burstiness=task.overall_burstiness
+                    )
+                else:
+                    # 旧格式
+                    syntax_metrics = json.loads(task.overall_syntax_analysis) if task.overall_syntax_analysis else None
+                    coherence_metrics = json.loads(task.overall_coherence_analysis) if task.overall_coherence_analysis else None
+                    style_metrics = json.loads(task.overall_style_analysis) if task.overall_style_analysis else None
+                    
+                    overall_analysis = DetailedAnalysisResult(
+                        perplexity=task.overall_perplexity,
+                        burstiness=task.overall_burstiness,
+                        syntax_metrics=syntax_metrics,
+                        coherence_metrics=coherence_metrics,
+                        style_metrics=style_metrics
+                    )
+            except Exception as e:
+                print(f"解析整体分析数据失败: {str(e)}")
         
         return DetectionResult(
             task_id=task_id,
             status=TaskStatus.COMPLETED,
             ai_generated_percentage=task.ai_generated_percentage,
-            details=details
+            details=details,
+            overall_analysis=overall_analysis
         )
     
     # 返回当前状态
@@ -133,18 +181,51 @@ async def perform_detection(task_id: str, filename: str, db: Session):
         # 检测AI内容
         ai_percentage, paragraph_results = await detect_ai_content(text)
         
+        # 分析整体文本
+        overall_analysis = await detection_metrics.analyze_text(text)
+        
         # 保存结果到数据库
         # 更新任务
         task.ai_generated_percentage = ai_percentage
         task.status = TaskStatus.COMPLETED.value
         
+        # 保存整体分析结果
+        # 提取特征分析数据，如果有的话
+        metrics_data = {}
+        models_results = overall_analysis.get("models_results", {})
+        if "特征分析" in models_results and "metrics" in models_results["特征分析"]:
+            metrics_data = models_results["特征分析"]["metrics"]
+        
+        # 保存兼容性字段
+        task.overall_perplexity = metrics_data.get("perplexity", 0.0)
+        task.overall_burstiness = metrics_data.get("burstiness", 0.0)
+        
+        # 保存新字段
+        task.overall_syntax_analysis = json.dumps(metrics_data.get("syntax_analysis", {}), ensure_ascii=False)
+        task.overall_coherence_analysis = json.dumps({}, ensure_ascii=False)  # 不再使用
+        task.overall_style_analysis = json.dumps(metrics_data.get("style_analysis", {}), ensure_ascii=False)
+        
+        # 添加新字段到任务表（如果数据库已更新）
+        if hasattr(task, 'overall_analysis_result'):
+            task.overall_analysis_result = json.dumps(overall_analysis, ensure_ascii=False)
+        
         # 保存段落分析结果
         for result in paragraph_results:
+            # 准备详细指标数据
+            metrics_data = {}
+            if hasattr(result, 'metrics') and result.metrics:
+                metrics_data = result.metrics
+            
+            # 创建段落结果
             paragraph = ParagraphResult(
                 task_id=task_id,
                 paragraph=result.paragraph,
                 ai_generated=result.ai_generated,
-                reason=result.reason
+                reason=result.reason,
+                confidence=result.confidence if hasattr(result, 'confidence') else None,
+                perplexity=metrics_data.get('perplexity', 0.0) if metrics_data else None,
+                burstiness=metrics_data.get('burstiness', 0.0) if metrics_data else None,
+                metrics_data=json.dumps(metrics_data, ensure_ascii=False) if metrics_data else None
             )
             db.add(paragraph)
         

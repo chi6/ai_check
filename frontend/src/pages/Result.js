@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Typography, Card, Spin, Button, Progress, Tabs, 
-  List, Tag, Empty, message, Divider, Space, Alert, Row, Col, Statistic
+  List, Tag, Empty, message, Divider, Space, Alert, Row, Col, Statistic,
+  Modal, Form, Radio, Checkbox, Popover
 } from 'antd';
 import { 
   DownloadOutlined, FilePdfOutlined, FileTextOutlined,
-  LeftOutlined, RobotOutlined, CheckCircleOutlined
+  LeftOutlined, RobotOutlined, CheckCircleOutlined,
+  FileOutlined, EyeOutlined,
+  Html5Outlined, ExportOutlined
 } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import { detectApi, reportApi } from '../api/api';
+import { showSuccess, handleApiError, notifySuccess } from '../utils/notification';
+import '../styles/Result.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -21,16 +26,36 @@ const ResultPage = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
-  const [detailData, setDetailData] = useState(null);
   const [activeTabKey, setActiveTabKey] = useState('overview');
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportForm] = Form.useForm();
+  const [templatePreviewVisible, setTemplatePreviewVisible] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('standard');
+  
+  // 报告导出配置选项
+  const exportFormats = [
+    { value: 'pdf', label: 'PDF 格式', icon: <FilePdfOutlined /> },
+    { value: 'html', label: 'HTML 格式', icon: <Html5Outlined /> },
+    { value: 'text', label: '纯文本格式', icon: <FileOutlined /> }
+  ];
+  
+  const reportTemplates = [
+    { value: 'standard', label: '标准报告', description: '包含基本检测信息和结果摘要' },
+    { value: 'detailed', label: '详细报告', description: '包含所有检测段落和详细分析' },
+    { value: 'simple', label: '简洁报告', description: '仅包含关键检测结果和数据' }
+  ];
 
-  useEffect(() => {
-    if (taskId) {
-      fetchDetectionResult();
+  const fetchDetailedReport = useCallback(async () => {
+    try {
+      // eslint-disable-next-line no-unused-vars
+      const reportData = await reportApi.getJsonReport(taskId);
+    } catch (error) {
+      console.error('获取详细报告失败:', error);
+      message.error('获取详细报告失败');
     }
   }, [taskId]);
 
-  const fetchDetectionResult = async () => {
+  const fetchDetectionResult = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -70,19 +95,66 @@ const ResultPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [taskId, fetchDetailedReport]);
 
-  const fetchDetailedReport = async () => {
+  useEffect(() => {
+    if (taskId) {
+      fetchDetectionResult();
+    }
+  }, [taskId, fetchDetectionResult]);
+
+  const exportReport = async (values) => {
+    const { format, template, includeOptions } = values;
+    
+    setDownloading(true);
+    
     try {
-      const reportData = await reportApi.getJsonReport(taskId);
-      setDetailData(reportData);
+      let reportBlob;
+      let filename = `ai_detection_report_${taskId}`;
+      let fileExt = format;
+      
+      // 构建导出选项
+      const exportOptions = {
+        template,
+        includeChart: includeOptions.includes('chart'),
+        includeDetails: includeOptions.includes('details'),
+        includeOriginalText: includeOptions.includes('originalText'),
+        includeMetadata: includeOptions.includes('metadata'),
+        includeHeaderFooter: includeOptions.includes('headerFooter')
+      };
+      
+      // 根据格式选择导出方法
+      if (format === 'pdf') {
+        reportBlob = await reportApi.getPdfReport(taskId, exportOptions);
+        fileExt = 'pdf';
+      } else if (format === 'html') {
+        reportBlob = await reportApi.getHtmlReport(taskId, exportOptions);
+        fileExt = 'html';
+      } else if (format === 'text') {
+        reportBlob = await reportApi.getTextReport(taskId, exportOptions);
+        fileExt = 'txt';
+      }
+      
+      // 创建下载链接
+      const url = window.URL.createObjectURL(new Blob([reportBlob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${filename}.${fileExt}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      notifySuccess('报告导出成功', `${format.toUpperCase()}报告已成功下载`);
+      setExportModalVisible(false);
     } catch (error) {
-      console.error('获取详细报告失败:', error);
-      message.error('获取详细报告失败');
+      handleApiError(error, `导出${format.toUpperCase()}报告失败`);
+    } finally {
+      setDownloading(false);
     }
   };
-
-  const handleDownloadPdf = async () => {
+  
+  // 快速下载PDF报告（不打开导出配置窗口）
+  const handleQuickPdfDownload = async () => {
     try {
       setDownloading(true);
       const pdfBlob = await reportApi.getPdfReport(taskId);
@@ -96,12 +168,121 @@ const ResultPage = () => {
       link.click();
       document.body.removeChild(link);
       
-      message.success('PDF报告下载成功');
+      showSuccess('PDF报告下载成功');
     } catch (error) {
-      console.error('下载PDF报告失败:', error);
-      message.error('下载PDF报告失败');
+      handleApiError(error, '下载PDF报告失败');
     } finally {
       setDownloading(false);
+    }
+  };
+  
+  // 显示导出选项窗口
+  const handleShowExportOptions = () => {
+    exportForm.resetFields();
+    setExportModalVisible(true);
+  };
+  
+  // 切换模板预览
+  const handleTemplateChange = (e) => {
+    setSelectedTemplate(e.target.value);
+  };
+  
+  // 预览模板
+  const handlePreviewTemplate = () => {
+    setTemplatePreviewVisible(true);
+  };
+  
+  // 渲染模板预览内容
+  const renderTemplatePreview = () => {
+    switch (selectedTemplate) {
+      case 'standard':
+        return (
+          <div className="template-preview standard-template">
+            <div className="preview-header">
+              <h3>标准报告预览</h3>
+            </div>
+            <div className="preview-content">
+              <div className="preview-section">
+                <h4>报告概述</h4>
+                <div className="preview-line"></div>
+                <div className="preview-line short"></div>
+              </div>
+              <div className="preview-section">
+                <h4>检测结果</h4>
+                <div className="preview-chart"></div>
+                <div className="preview-line"></div>
+                <div className="preview-line short"></div>
+              </div>
+              <div className="preview-section">
+                <h4>AI内容摘要</h4>
+                <div className="preview-block"></div>
+                <div className="preview-block"></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'detailed':
+        return (
+          <div className="template-preview detailed-template">
+            <div className="preview-header">
+              <h3>详细报告预览</h3>
+            </div>
+            <div className="preview-content">
+              <div className="preview-section">
+                <h4>报告概述</h4>
+                <div className="preview-line"></div>
+                <div className="preview-line short"></div>
+              </div>
+              <div className="preview-section">
+                <h4>检测结果</h4>
+                <div className="preview-chart"></div>
+                <div className="preview-line"></div>
+                <div className="preview-line"></div>
+              </div>
+              <div className="preview-section">
+                <h4>段落详细分析</h4>
+                <div className="preview-paragraph">
+                  <div className="preview-paragraph-header ai"></div>
+                  <div className="preview-paragraph-content"></div>
+                </div>
+                <div className="preview-paragraph">
+                  <div className="preview-paragraph-header human"></div>
+                  <div className="preview-paragraph-content"></div>
+                </div>
+                <div className="preview-paragraph">
+                  <div className="preview-paragraph-header ai"></div>
+                  <div className="preview-paragraph-content"></div>
+                </div>
+              </div>
+              <div className="preview-section">
+                <h4>分析方法说明</h4>
+                <div className="preview-line"></div>
+                <div className="preview-line"></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'simple':
+        return (
+          <div className="template-preview simple-template">
+            <div className="preview-header">
+              <h3>简洁报告预览</h3>
+            </div>
+            <div className="preview-content">
+              <div className="preview-section">
+                <h4>检测结果摘要</h4>
+                <div className="preview-line"></div>
+                <div className="preview-chart simple"></div>
+              </div>
+              <div className="preview-section">
+                <h4>关键数据</h4>
+                <div className="preview-stats"></div>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return <div>无预览</div>;
     }
   };
 
@@ -234,7 +415,15 @@ const ResultPage = () => {
                 <FileTextOutlined style={{ fontSize: 64, color: '#1890ff' }} />
                 <Title level={3} style={{ marginTop: 20 }}>等待检测</Title>
                 <Paragraph>任务已上传，但尚未开始检测。</Paragraph>
-                <Button type="primary" onClick={() => detectApi.startDetection(taskId)}>开始检测</Button>
+                <Button type="primary" onClick={() => {
+                  if (taskId && typeof taskId === 'string') {
+                    console.log('Starting detection for task ID:', taskId);
+                    detectApi.startDetection(taskId);
+                  } else {
+                    console.error('Invalid task ID:', taskId);
+                    message.error('无效的任务ID，请返回上传页面重新上传');
+                  }
+                }}>开始检测</Button>
               </>
             )}
           </div>
@@ -245,7 +434,7 @@ const ResultPage = () => {
 
   // 任务已完成，显示结果
   return (
-    <div>
+    <div className="result-page">
       <div style={{ marginBottom: 20 }}>
         <Button icon={<LeftOutlined />} onClick={() => navigate('/dashboard')}>
           返回首页
@@ -294,114 +483,234 @@ const ResultPage = () => {
           </div>
           
           <div style={{ marginTop: 20 }}>
-            <Button 
-              type="primary" 
-              icon={<DownloadOutlined />} 
-              loading={downloading} 
-              onClick={handleDownloadPdf}
-            >
-              下载PDF报告
-            </Button>
+            <Space>
+              <Button 
+                type="primary" 
+                icon={<DownloadOutlined />} 
+                loading={downloading} 
+                onClick={handleQuickPdfDownload}
+              >
+                下载PDF报告
+              </Button>
+              <Popover
+                content={
+                  <div>
+                    <p>选择导出格式并自定义报告内容</p>
+                  </div>
+                }
+                title="导出选项"
+                trigger="hover"
+              >
+                <Button 
+                  icon={<ExportOutlined />} 
+                  onClick={handleShowExportOptions}
+                >
+                  更多导出选项
+                </Button>
+              </Popover>
+            </Space>
           </div>
         </div>
       </Card>
       
+      {/* 导出选项对话框 */}
+      <Modal
+        title="导出报告"
+        open={exportModalVisible}
+        onOk={() => exportForm.submit()}
+        onCancel={() => setExportModalVisible(false)}
+        confirmLoading={downloading}
+        width={600}
+      >
+        <Form
+          form={exportForm}
+          layout="vertical"
+          initialValues={{
+            format: 'pdf',
+            template: 'standard',
+            includeOptions: ['chart', 'details', 'metadata', 'headerFooter']
+          }}
+          onFinish={exportReport}
+        >
+          <Form.Item 
+            name="format" 
+            label="导出格式"
+            rules={[{ required: true, message: '请选择导出格式' }]}
+          >
+            <Radio.Group>
+              {exportFormats.map(format => (
+                <Radio.Button value={format.value} key={format.value}>
+                  {format.icon} {format.label}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          </Form.Item>
+          
+          <Form.Item 
+            name="template" 
+            label={
+              <Space>
+                报告模板
+                <Button type="link" size="small" onClick={handlePreviewTemplate} icon={<EyeOutlined />}>
+                  预览
+                </Button>
+              </Space>
+            }
+            rules={[{ required: true, message: '请选择报告模板' }]}
+          >
+            <Radio.Group onChange={handleTemplateChange}>
+              {reportTemplates.map(template => (
+                <Radio value={template.value} key={template.value}>
+                  <div>
+                    <div>{template.label}</div>
+                    <div className="template-description">{template.description}</div>
+                  </div>
+                </Radio>
+              ))}
+            </Radio.Group>
+          </Form.Item>
+          
+          <Form.Item 
+            name="includeOptions" 
+            label="包含内容"
+          >
+            <Checkbox.Group>
+              <Row>
+                <Col span={12}>
+                  <Checkbox value="chart">包含图表</Checkbox>
+                </Col>
+                <Col span={12}>
+                  <Checkbox value="details">包含详细分析</Checkbox>
+                </Col>
+                <Col span={12}>
+                  <Checkbox value="originalText">包含原文</Checkbox>
+                </Col>
+                <Col span={12}>
+                  <Checkbox value="metadata">包含元数据</Checkbox>
+                </Col>
+                <Col span={12}>
+                  <Checkbox value="headerFooter">包含页眉页脚</Checkbox>
+                </Col>
+              </Row>
+            </Checkbox.Group>
+          </Form.Item>
+        </Form>
+      </Modal>
+      
+      {/* 模板预览弹窗 */}
+      <Modal
+        title="报告模板预览"
+        open={templatePreviewVisible}
+        onCancel={() => setTemplatePreviewVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setTemplatePreviewVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={600}
+      >
+        {renderTemplatePreview()}
+      </Modal>
+      
       <Card className="result-card">
-        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey}>
-          <Tabs.TabPane 
-            tab={
+        <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={[
+          {
+            key: 'overview',
+            label: (
               <span>
                 <FileTextOutlined />
                 概览
               </span>
-            } 
-            key="overview"
-          >
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <Title level={4}>内容分布</Title>
-              {renderPieChart()}
-            </div>
-            
-            <Row>
-              <Col span={12}>
-                <Statistic
-                  title="AI生成段落数"
-                  value={getAIParagraphs().length}
-                  prefix={<RobotOutlined />}
-                />
-              </Col>
-              <Col span={12}>
-                <Statistic
-                  title="人类撰写段落数"
-                  value={getHumanParagraphs().length}
-                  prefix={<CheckCircleOutlined />}
-                />
-              </Col>
-            </Row>
-          </Tabs.TabPane>
-          
-          <Tabs.TabPane 
-            tab={
+            ),
+            children: (
+              <>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <Title level={4}>内容分布</Title>
+                  {renderPieChart()}
+                </div>
+                
+                <Row>
+                  <Col span={12}>
+                    <Statistic
+                      title="AI生成段落数"
+                      value={getAIParagraphs().length}
+                      prefix={<RobotOutlined />}
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Statistic
+                      title="人类撰写段落数"
+                      value={getHumanParagraphs().length}
+                      prefix={<CheckCircleOutlined />}
+                    />
+                  </Col>
+                </Row>
+              </>
+            )
+          },
+          {
+            key: 'ai',
+            label: (
               <span>
                 <RobotOutlined />
                 AI生成内容
               </span>
-            } 
-            key="ai"
-          >
-            <List
-              dataSource={getAIParagraphs()}
-              renderItem={item => (
-                <List.Item>
-                  <Card 
-                    className="paragraph-card paragraph-ai" 
-                    style={{ width: '100%', borderColor: '#ff4d4f' }}
-                  >
-                    <Paragraph>{item.paragraph}</Paragraph>
-                    <div style={{ marginTop: 10 }}>
-                      <Tag color="red">AI生成</Tag>
-                      <Text type="secondary">原因: {item.reason}</Text>
-                    </div>
-                  </Card>
-                </List.Item>
-              )}
-              locale={{
-                emptyText: <Empty description="未检测到AI生成内容" />
-              }}
-            />
-          </Tabs.TabPane>
-          
-          <Tabs.TabPane 
-            tab={
+            ),
+            children: (
+              <List
+                dataSource={getAIParagraphs()}
+                renderItem={item => (
+                  <List.Item>
+                    <Card 
+                      className="paragraph-card paragraph-ai" 
+                      style={{ width: '100%', borderColor: '#ff4d4f' }}
+                    >
+                      <Paragraph>{item.paragraph}</Paragraph>
+                      <div style={{ marginTop: 10 }}>
+                        <Tag color="red">AI生成</Tag>
+                        <Text type="secondary">原因: {item.reason}</Text>
+                      </div>
+                    </Card>
+                  </List.Item>
+                )}
+                locale={{
+                  emptyText: <Empty description="未检测到AI生成内容" />
+                }}
+              />
+            )
+          },
+          {
+            key: 'human',
+            label: (
               <span>
                 <CheckCircleOutlined />
                 人类撰写内容
               </span>
-            } 
-            key="human"
-          >
-            <List
-              dataSource={getHumanParagraphs()}
-              renderItem={item => (
-                <List.Item>
-                  <Card 
-                    className="paragraph-card paragraph-human" 
-                    style={{ width: '100%', borderColor: '#52c41a' }}
-                  >
-                    <Paragraph>{item.paragraph}</Paragraph>
-                    <div style={{ marginTop: 10 }}>
-                      <Tag color="green">人类撰写</Tag>
-                      <Text type="secondary">原因: {item.reason}</Text>
-                    </div>
-                  </Card>
-                </List.Item>
-              )}
-              locale={{
-                emptyText: <Empty description="未检测到人类撰写内容" />
-              }}
-            />
-          </Tabs.TabPane>
-        </Tabs>
+            ),
+            children: (
+              <List
+                dataSource={getHumanParagraphs()}
+                renderItem={item => (
+                  <List.Item>
+                    <Card 
+                      className="paragraph-card paragraph-human" 
+                      style={{ width: '100%', borderColor: '#52c41a' }}
+                    >
+                      <Paragraph>{item.paragraph}</Paragraph>
+                      <div style={{ marginTop: 10 }}>
+                        <Tag color="green">人类撰写</Tag>
+                        <Text type="secondary">原因: {item.reason}</Text>
+                      </div>
+                    </Card>
+                  </List.Item>
+                )}
+                locale={{
+                  emptyText: <Empty description="未检测到人类撰写内容" />
+                }}
+              />
+            )
+          }
+        ]} />
       </Card>
     </div>
   );

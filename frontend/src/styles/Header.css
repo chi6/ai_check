@@ -1,0 +1,73 @@
+.app-header {
+  position: fixed;
+  z-index: 10;
+  width: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  height: 64px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 16px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+}
+
+.desktop-menu {
+  flex: 1;
+  line-height: 64px;
+}
+
+.user-section {
+  padding-left: 16px;
+}
+
+.logo {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  white-space: nowrap;
+  margin-right: 16px;
+}
+
+.menu-button {
+  color: white !important;
+}
+
+/* 移动设备上隐藏原始菜单，只显示图标 */
+@media (max-width: 768px) {
+  .logo {
+    font-size: 16px;
+  }
+}
+
+/* 平板与小屏电脑上的样式调整 */
+@media (min-width: 768px) and (max-width: 992px) {
+  .logo {
+    font-size: 16px;
+  }
+}
+
+/* 中等尺寸屏幕上的样式 */
+@media (min-width: 992px) and (max-width: 1200px) {
+  .header-container {
+    padding: 0 24px;
+  }
+}
+
+/* 大屏幕上的样式 */
+@media (min-width: 1200px) {
+  .header-container {
+    padding: 0 50px;
+  }
+} 

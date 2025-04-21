@@ -74,13 +74,31 @@ export const uploadApi = {
 // 检测相关API
 export const detectApi = {
   // 获取检测状态
-  getDetectionStatus: (taskId) => api.get(`/detect/${taskId}`),
+  getDetectionStatus: (taskId) => {
+    if (!taskId || typeof taskId !== 'string') {
+      console.error('Invalid task ID for getDetectionStatus:', taskId);
+      throw new Error('Invalid task ID');
+    }
+    return api.get(`/detect/${taskId}`);
+  },
   
   // 开始检测
-  startDetection: (taskId) => api.post(`/detect/${taskId}/start`),
+  startDetection: (taskId) => {
+    if (!taskId || typeof taskId !== 'string') {
+      console.error('Invalid task ID for startDetection:', taskId);
+      throw new Error('Invalid task ID');
+    }
+    return api.post(`/detect/${taskId}/start`);
+  },
   
   // 取消检测
-  cancelDetection: (taskId) => api.delete(`/detect/${taskId}/cancel`),
+  cancelDetection: (taskId) => {
+    if (!taskId || typeof taskId !== 'string') {
+      console.error('Invalid task ID for cancelDetection:', taskId);
+      throw new Error('Invalid task ID');
+    }
+    return api.delete(`/detect/${taskId}/cancel`);
+  },
 };
 
 // 报告相关API
