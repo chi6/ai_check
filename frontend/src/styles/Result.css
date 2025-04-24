@@ -7,27 +7,58 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.result-summary {
-  text-align: center;
-  padding: 10px 0;
+.result-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.result-header {
+  margin-bottom: 24px;
+}
+
+.result-summary-card {
+  margin-top: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.overall-result .ant-progress-text {
+  font-weight: bold;
+  font-size: 24px;
 }
 
 .paragraph-card {
-  width: 100%;
-  border-radius: 4px;
+  margin-bottom: 16px;
+  border-radius: 8px;
   transition: all 0.3s;
 }
 
-.paragraph-ai {
-  border-left: 4px solid #ff4d4f;
+.paragraph-card.ai-generated {
+  border-left: 5px solid #ff4d4f;
 }
 
-.paragraph-human {
-  border-left: 4px solid #52c41a;
+.paragraph-card.human-written {
+  border-left: 5px solid #52c41a;
 }
 
 .paragraph-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.paragraph-header {
+  display: flex;
+  align-items: center;
+}
+
+.paragraph-content {
+  padding: 8px 0;
+}
+
+.paragraph-reason {
+  background-color: #fafafa;
+  padding: 12px;
+  border-radius: 4px;
 }
 
 .template-description {
@@ -38,10 +69,11 @@
 
 /* 模板预览样式 */
 .template-preview {
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  padding: 15px;
-  max-width: 100%;
+  padding: 16px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  background-color: #fafafa;
+  margin-top: 16px;
 }
 
 .preview-header {
@@ -143,10 +175,85 @@
 /* 响应式调整 */
 @media (max-width: 576px) {
   .result-summary {
-    padding: 5px 0;
+    padding: 10px;
   }
   
-  .template-preview {
+  .ant-statistic-title {
+    font-size: 14px;
+  }
+  
+  .paragraph-card {
+    padding: 12px;
+  }
+}
+
+/* 指标卡片样式 */
+.metric-card {
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.metric-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 分析方法部分样式 */
+.detection-method {
+  padding: 10px;
+}
+
+.detection-method h4 {
+  margin-bottom: 16px;
+}
+
+.detection-method h5 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+/* 全部段落分析部分样式 */
+.all-paragraphs {
+  margin-top: 10px;
+}
+
+.all-paragraphs .ant-list-item {
+  padding: 0;
+  margin-bottom: 16px;
+}
+
+.advanced-metrics-container {
+  margin-bottom: 24px;
+}
+
+.detection-summary {
+  margin-bottom: 24px;
+}
+
+.export-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .result-container {
     padding: 10px;
+  }
+  
+  .advanced-metrics-container .ant-row {
+    margin-bottom: 0 !important;
+  }
+  
+  .metric-card {
+    margin-bottom: 16px;
+  }
+  
+  .overall-result .ant-progress-circle {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  
+  .overall-result .ant-typography-h4 {
+    font-size: 18px;
   }
 } 

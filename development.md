@@ -86,6 +86,39 @@ project-root/
 - API调用限制、异常处理需完善，保证工具健壮性。
 - 模型调用成本需提前评估，优化API调用次数。
 
+## PDF 报告生成
+
+生成 PDF 报告需要安装 wkhtmltopdf 依赖:
+
+### macOS
+
+```
+brew install wkhtmltopdf
+```
+
+如果遇到安装问题，也可以下载预编译的二进制文件：
+
+1. 访问 [wkhtmltopdf 下载页面](https://wkhtmltopdf.org/downloads.html)
+2. 下载适用于 macOS 的版本
+3. 安装下载的 .pkg 文件
+
+### Windows
+
+1. 访问 [wkhtmltopdf 下载页面](https://wkhtmltopdf.org/downloads.html)
+2. 下载适用于 Windows 的安装程序
+3. 运行安装程序并确保将安装路径添加到系统 PATH 中
+
+### Linux (Ubuntu/Debian)
+
+```
+sudo apt-get update
+sudo apt-get install wkhtmltopdf
+```
+
+### 相关问题排查
+
+如果生成 PDF 报告时遇到问题，系统会自动降级为提供 HTML 格式的报告。如需确保 PDF 生成功能正常，请确保已正确安装 wkhtmltopdf。
+
 ---
 
 此文档用于辅助开发实现，便于团队快速开展工作，明确任务分工与实现细节。

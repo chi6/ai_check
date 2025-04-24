@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Typography, Tag, Button, Space, Empty, Spin, message, Tooltip, Input } from 'antd';
 import { 
-  SearchOutlined, EyeOutlined, DownloadOutlined, 
-  FilterOutlined, RobotOutlined
+  EyeOutlined, DownloadOutlined, 
+  RobotOutlined
 } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { userApi, reportApi } from '../api/api';
 
 const { Title, Paragraph, Text } = Typography;
@@ -20,13 +20,32 @@ const History = () => {
   
   const navigate = useNavigate();
 
+  // 使用useCallback包装filterTasks函数
+  const filterTasks = useCallback(() => {
+    let result = [...tasks];
+    
+    // 按文件名搜索
+    if (searchText) {
+      result = result.filter(task => 
+        task.filename.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+    
+    // 按状态筛选
+    if (statusFilter) {
+      result = result.filter(task => task.status === statusFilter);
+    }
+    
+    setFilteredTasks(result);
+  }, [tasks, searchText, statusFilter]);
+
   useEffect(() => {
     fetchTasks();
   }, []);
 
   useEffect(() => {
     filterTasks();
-  }, [tasks, searchText, statusFilter]);
+  }, [filterTasks]);
 
   const fetchTasks = async () => {
     try {
@@ -48,28 +67,10 @@ const History = () => {
     }
   };
 
-  const filterTasks = () => {
-    let result = [...tasks];
-    
-    // 按文件名搜索
-    if (searchText) {
-      result = result.filter(task => 
-        task.filename.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-    
-    // 按状态筛选
-    if (statusFilter) {
-      result = result.filter(task => task.status === statusFilter);
-    }
-    
-    setFilteredTasks(result);
-  };
-
-  const handleDownloadPdf = async (taskId) => {
+  const handleDownloadReport = async (taskId) => {
     try {
-      setDownloading(true);
-      const pdfBlob = await reportApi.getPdfReport(taskId);
+      setDownloading(taskId);
+      const pdfBlob = await reportApi.getHtmlToPdfReport(taskId);
       
       // 创建下载链接
       const url = window.URL.createObjectURL(new Blob([pdfBlob]));
@@ -82,10 +83,10 @@ const History = () => {
       
       message.success('PDF报告下载成功');
     } catch (error) {
-      console.error('下载PDF报告失败:', error);
-      message.error('下载PDF报告失败');
+      console.error('下载报告失败:', error);
+      message.error('下载报告失败，请稍后再试');
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
@@ -169,7 +170,7 @@ const History = () => {
             <Button
               size="small"
               icon={<DownloadOutlined />}
-              onClick={() => handleDownloadPdf(record.id)}
+              onClick={() => handleDownloadReport(record.id)}
               disabled={record.status !== 'completed' || downloading}
               loading={downloading}
             />

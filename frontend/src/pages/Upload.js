@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert } from 'antd';
+import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert, Spin } from 'antd';
 import { 
   InboxOutlined, 
   FileTextOutlined, 
@@ -23,6 +23,7 @@ const UploadPage = () => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
   const [detectingFiles, setDetectingFiles] = useState([]);
+  const [statusMessage, setStatusMessage] = useState('');
   
   const navigate = useNavigate();
 
@@ -133,6 +134,10 @@ const UploadPage = () => {
       // 开始检测
       await detectApi.startDetection(taskId);
       
+      // 显示开始检测的通知
+      notifyInfo('检测已开始', '系统正在分析您的文档...');
+      setStatusMessage('检测任务已启动，正在准备文档分析...');
+      
       // 如果是批量检测中的一个文件，更新文件状态
       if (fileIndex !== null) {
         const updatedFiles = [...detectingFiles];
@@ -146,22 +151,56 @@ const UploadPage = () => {
       // 检测进度轮询
       setProgress(0);
       let progressInterval = setInterval(() => {
+        // 只有在status不是completed或failed时才更新进度
         setProgress((prev) => {
+          // 确保进度不会超过90%，保留给最终完成阶段
           if (prev >= 90) {
             return 90;
           }
-          return prev + 5;
+          // 每次增加一个随机值1-3之间，使进度看起来更自然
+          const increment = 1 + Math.floor(Math.random() * 3);
+          return prev + increment;
         });
-      }, 1000);
+      }, 2000);
       
       // 轮询检测状态
       let statusCheckInterval = setInterval(async () => {
         try {
+          console.log('检查任务状态:', taskId);
           const result = await detectApi.getDetectionStatus(taskId);
+          console.log('获取到的任务状态:', result.status, '任务结果:', result);
+          
+          // 始终更新进度，确保UI响应
+          let newProgress = progress;
+          
+          // 更新进度显示（根据状态调整进度显示）
+          if (result.status === 'processing') {
+            // 确保进度条显示处理中的动态效果
+            if (progress < 30) {
+              newProgress = Math.min(progress + 5, 30);
+              setProgress(newProgress);
+              setStatusMessage('正在提取文档内容，准备进行AI分析...');
+              console.log('更新进度到:', newProgress, '阶段: 文档提取');
+            } else if (progress < 60) {
+              newProgress = Math.min(progress + 3, 60);
+              setProgress(newProgress);
+              setStatusMessage('AI模型正在分析文档内容，检测AI生成特征...');
+              console.log('更新进度到:', newProgress, '阶段: AI分析');
+            } else if (progress < 90) {
+              newProgress = Math.min(progress + 2, 90);
+              setProgress(newProgress);
+              setStatusMessage('正在生成分析报告，即将完成...');
+              console.log('更新进度到:', newProgress, '阶段: 生成报告');
+            }
+          }
+          
           if (result.status === 'completed') {
+            console.log('检测完成, 清理轮询');
             clearInterval(statusCheckInterval);
             clearInterval(progressInterval);
             setProgress(100);
+            setStatusMessage('检测已完成！即将跳转到结果页面...');
+            console.log('检测已完成！更新进度到100%，准备导航到结果页面');
             
             // 如果是批量检测中的一个文件，更新文件状态
             if (fileIndex !== null) {
@@ -175,14 +214,21 @@ const UploadPage = () => {
             } else {
               setCurrentStep(2);
               showSuccess('检测完成！');
-              // 导航到结果页面
+              
+              // 在1秒后重置状态并导航到结果页面
               setTimeout(() => {
+                setDetecting(false);
+                // 导航到结果页面
+                console.log('即将导航到结果页面:', `/result/${taskId}`);
                 navigate(`/result/${taskId}`);
               }, 1000);
             }
           } else if (result.status === 'failed') {
+            console.log('检测失败, 清理轮询');
             clearInterval(statusCheckInterval);
             clearInterval(progressInterval);
+            setStatusMessage('检测失败，请重试！');
+            console.log('检测失败，停止轮询和进度条');
             
             // 如果是批量检测中的一个文件，更新文件状态
             if (fileIndex !== null) {
@@ -195,12 +241,17 @@ const UploadPage = () => {
               notifyError('检测失败', `文件 "${updatedFiles[fileIndex].name}" 检测失败`);
             } else {
               setError('检测失败，请重试！');
+              // 设置detecting为false
+              setDetecting(false);
             }
+          } else {
+            console.log('任务仍在处理中，继续轮询');
           }
         } catch (error) {
           console.error('获取检测状态失败:', error);
           clearInterval(statusCheckInterval);
           clearInterval(progressInterval);
+          setStatusMessage('获取检测状态失败，请刷新页面重试');
           
           // 如果是批量检测中的一个文件，更新文件状态
           if (fileIndex !== null) {
@@ -213,9 +264,11 @@ const UploadPage = () => {
             notifyError('检测状态获取失败', `文件 "${updatedFiles[fileIndex].name}" 状态获取失败`);
           } else {
             setError('获取检测状态失败，请刷新页面重试');
+            // 设置detecting为false
+            setDetecting(false);
           }
         }
-      }, 3000);
+      }, 2000); // 减少轮询间隔为2秒
       
     } catch (error) {
       console.error('开始检测失败:', error);
@@ -231,10 +284,6 @@ const UploadPage = () => {
         notifyError('检测启动失败', `文件 "${updatedFiles[fileIndex].name}" 检测启动失败`);
       } else {
         setError('开始检测失败：' + (error.response?.data?.detail || '请稍后再试'));
-      }
-    } finally {
-      if (fileIndex === null) {
-        setDetecting(false);
       }
     }
   };
@@ -374,7 +423,13 @@ const UploadPage = () => {
             {detecting && (
               <div style={{ marginTop: 20 }}>
                 <Text>检测进度：</Text>
-                <Progress percent={progress} status="active" />
+                <Progress percent={progress} status="active" format={percent => `${percent}%`} />
+                <div style={{ marginTop: 10, textAlign: 'center' }}>
+                  <Spin spinning={true} size="small" style={{ marginRight: 8 }} />
+                  <Text strong>{statusMessage || '正在进行AI内容检测，这可能需要1-2分钟...'}</Text>
+                  <br />
+                  <Text type="secondary">系统状态: <Text type="warning">处理中</Text> (请勿关闭页面)</Text>
+                </div>
               </div>
             )}
           </div>

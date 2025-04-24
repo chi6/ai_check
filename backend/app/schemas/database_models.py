@@ -33,6 +33,7 @@ class DetectionTask(Base):
     overall_syntax_analysis = Column(String, nullable=True)  # JSON存储
     overall_coherence_analysis = Column(String, nullable=True)  # JSON存储
     overall_style_analysis = Column(String, nullable=True)  # JSON存储
+    overall_analysis_result = Column(String, nullable=True)  # 新的JSON格式存储所有分析结果
     
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -53,6 +54,7 @@ class ParagraphResult(Base):
     perplexity = Column(Float, nullable=True)
     burstiness = Column(Float, nullable=True)
     confidence = Column(Float, nullable=True)
+    ai_likelihood = Column(String, nullable=True)  # 存储AI可能性评级（高/中/低）
     metrics_data = Column(String, nullable=True)  # JSON存储所有其他指标
     
     task_id = Column(String, ForeignKey("detection_tasks.id"))

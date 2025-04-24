@@ -11,7 +11,7 @@ class LlmClient:
     LLM 客户端，用于与大语言模型服务通信
     """
     def __init__(self):
-        self.endpoint_id = os.getenv('ENDPOINT_ID', 'ep-20250421001241-mnp77')  # 从环境变量获取模型 ID，默认使用提供的ID
+        self.endpoint_id = os.getenv('ENDPOINT_ID', 'ep-20250422142640-ksbch')  # 从环境变量获取模型 ID，默认使用提供的ID
         self.responses = {}  # 存储请求的响应
         self.client = Ark(
             base_url="https://ark.cn-beijing.volces.com/api/v3",
@@ -48,9 +48,9 @@ class LlmClient:
             print(f"调用LLM API时出错: {str(e)}")
             return None
     
-    def analyze_text(self, text, is_ai_generated=False, context=None):
+    async def analyze_text(self, text, is_ai_generated=False, context=None):
         """
-        分析文本是否为AI生成，并提供原因
+        异步分析文本是否为AI生成，并提供原因
         
         Args:
             text: 要分析的文本
@@ -93,20 +93,21 @@ class LlmClient:
             user_prompt = f"以下是一段AI生成的文本，请分析为什么它看起来像AI生成的:\n\n{text}"
         else:
             user_prompt = f"请分析以下文本段落是人类撰写还是AI生成的:\n\n{text}"
-            
-        # 发送请求
-        request_id = str(uuid.uuid4())
-        completion = self.query(system_prompt, user_prompt, request_id)
         
-        if completion:
+        try:
+            # 使用异步方法调用模型
+            response_text = await self.call_model(system_prompt, user_prompt)
+            
             try:
-                # 尝试从响应中提取结果
-                response_text = completion.choices[0].message.content
+                # 尝试解析JSON响应
+                response_data = json.loads(response_text)
+                is_ai = response_data.get("is_ai_generated", False)
+                confidence = response_data.get("confidence", 50)
+                reason = response_data.get("reason", "未提供原因")
                 
-                # 这里需要解析JSON响应，但为简化代码暂不实现
-                # 在实际应用中，应该使用json.loads解析响应
-                
-                # 简单模拟：如果响应中包含"is_ai_generated": true
+                return is_ai, reason
+            except json.JSONDecodeError:
+                # 如果无法解析完整JSON，使用简单的文本匹配
                 is_ai = "is_ai_generated\": true" in response_text.lower() or "\"is_ai_generated\":true" in response_text.lower()
                 
                 # 提取reason部分 - 简化实现
@@ -114,11 +115,10 @@ class LlmClient:
                 reason = "无法确定原因" if reason_start == -1 else response_text[reason_start+10:].split("\"")[1]
                 
                 return is_ai, reason
-            except Exception as e:
-                print(f"解析LLM响应时出错: {str(e)}")
-                return None, f"分析过程出错: {str(e)}"
-        
-        return None, "无法获取LLM响应"
+                
+        except Exception as e:
+            print(f"分析文本时出错: {str(e)}")
+            return False, f"分析过程出错: {str(e)}"
 
     async def call_model(self, system_prompt, user_prompt):
         """

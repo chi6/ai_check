@@ -15,6 +15,9 @@ class ParagraphAnalysis(BaseModel):
     reason: str
     metrics: Optional[Dict[str, Any]] = None
     confidence: Optional[float] = None
+    perplexity: Optional[float] = None
+    ai_likelihood: Optional[str] = None
+    additional_metrics: Optional[Dict[str, Any]] = None
 
 class DetailedAnalysisResult(BaseModel):
     """文本AI检测的详细分析结果"""
@@ -25,6 +28,8 @@ class DetailedAnalysisResult(BaseModel):
     # 保留原有字段，兼容旧版本
     perplexity: Optional[float] = None
     burstiness: Optional[float] = None
+    style_consistency: Optional[float] = None
+    ai_likelihood: Optional[str] = None
     syntax_metrics: Optional[Dict[str, Any]] = None
     coherence_metrics: Optional[Dict[str, Any]] = None
     style_metrics: Optional[Dict[str, Any]] = None

@@ -106,10 +106,29 @@ export const reportApi = {
   // 获取JSON格式报告
   getJsonReport: (taskId) => api.get(`/report/${taskId}?format=json`),
   
-  // 获取PDF格式报告(返回blob)
-  getPdfReport: (taskId) => api.get(`/report/${taskId}?format=pdf`, {
-    responseType: 'blob'
-  }),
+  // 获取HTML格式报告(返回blob)
+  getHtmlReport: (taskId, options = {}) => {
+    const params = new URLSearchParams({
+      format: 'html',
+      ...options
+    });
+    return api.get(`/report/${taskId}?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  },
+  
+  // 获取纯文本格式报告(返回blob)
+  getTextReport: (taskId, options = {}) => {
+    const params = new URLSearchParams({
+      format: 'text',
+      ...options
+    });
+    return api.get(`/report/${taskId}?${params.toString()}`, {
+      responseType: 'blob'
+    });
+  },
+  
+  // 注意: PDF格式功能已从后端移除
 };
 
 export default api; 
