@@ -211,10 +211,10 @@ async def perform_detection(task_id: str, filename: str):
         task.status = TaskStatus.PROCESSING.value
         db.commit()
         
-        # 读取文件内容
-        file_path = os.path.join(UPLOAD_DIR, task_id, filename)
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # 使用extract_text函数读取文件内容，而不是直接打开
+        content = extract_text(task_id, filename)
+        if not content:
+            raise Exception("无法读取文件内容或文件为空")
         
         # 调用AI检测服务进行综合分析
         detection_result = await detect_ai_content_comprehensive(content)
