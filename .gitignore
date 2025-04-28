@@ -12,3 +12,6 @@ backend/models/sentence-transformers_all-MiniLM-L6-v2
 backend/models/models--gpt2
 backend/models/gpt2
 backend/models/all-MiniLM-L6-v2 
+
+# 大型训练数据集
+daigt-v2-train-dataset/versions/2/train_v2_drcat_02.csv 
