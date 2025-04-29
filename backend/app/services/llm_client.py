@@ -80,13 +80,26 @@ class LlmClient:
         if context and isinstance(context, dict):
             metrics_info = []
             if 'perplexity' in context:
-                metrics_info.append(f"计算出的困惑度(Perplexity): {context['perplexity']:.2f} (值低表示可能是AI生成)")
+                perplexity = context['perplexity']
+                metrics_info.append(f"文本困惑度(Perplexity): {perplexity:.2f}")
+                
+                # 添加困惑度解释
+                if perplexity < 20:
+                    metrics_info.append("- 困惑度非常低，高度可能是AI生成的文本")
+                elif perplexity < 30:
+                    metrics_info.append("- 困惑度中等偏低，可能是AI生成的文本")
+                else:
+                    metrics_info.append("- 困惑度较高，更倾向于人类创作的文本")
+            
+            if 'initial_likelihood' in context:
+                metrics_info.append(f"初步AI可能性评估: {context['initial_likelihood']}")
+                
             if 'burstiness' in context:
                 metrics_info.append(f"计算出的爆发度(Burstiness): {context['burstiness']:.2f} (值低表示可能是AI生成)")
             
             if metrics_info:
                 metrics_text = "\n".join(metrics_info)
-                system_prompt += f"\n\n我们已经预先计算了一些指标数据，请将其纳入你的考虑：\n{metrics_text}"
+                system_prompt += f"\n\n我们已经预先计算了一些指标数据，请将其纳入你的综合判断：\n{metrics_text}\n\n请综合考虑上述指标和你自己的文本分析，给出最终判断结果和理由。"
         
         # 如果已知是AI生成的，添加这个信息到提示中
         if is_ai_generated:
@@ -105,6 +118,14 @@ class LlmClient:
                 confidence = response_data.get("confidence", 50)
                 reason = response_data.get("reason", "未提供原因")
                 
+                # 添加困惑度信息到原因中（如果有）
+                if context and 'perplexity' in context:
+                    perplexity = context['perplexity']
+                    if perplexity < 20 and "困惑度" not in reason:
+                        reason += f"（困惑度为{perplexity:.2f}，非常低，支持AI生成判断）"
+                    elif perplexity > 35 and is_ai:
+                        reason += f"（需注意，困惑度为{perplexity:.2f}，较高，与AI生成特征不完全一致）"
+                
                 return is_ai, reason
             except json.JSONDecodeError:
                 # 如果无法解析完整JSON，使用简单的文本匹配
@@ -114,10 +135,20 @@ class LlmClient:
                 reason_start = response_text.find("\"reason\":")
                 reason = "无法确定原因" if reason_start == -1 else response_text[reason_start+10:].split("\"")[1]
                 
+                # 添加困惑度信息（如果有）
+                if context and 'perplexity' in context:
+                    perplexity = context['perplexity']
+                    reason += f"（困惑度：{perplexity:.2f}）"
+                
                 return is_ai, reason
                 
         except Exception as e:
             print(f"分析文本时出错: {str(e)}")
+            # 如果提供了困惑度，在错误时使用困惑度简单判断
+            if context and 'perplexity' in context:
+                perplexity = context['perplexity']
+                is_ai_guess = perplexity < 20
+                return is_ai_guess, f"LLM分析失败，基于困惑度({perplexity:.2f})推断: {str(e)}"
             return False, f"分析过程出错: {str(e)}"
 
     async def call_model(self, system_prompt, user_prompt):

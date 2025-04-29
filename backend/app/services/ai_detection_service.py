@@ -384,49 +384,61 @@ async def analyze_segment_comprehensive(segment: str) -> Dict[str, Any]:
         }
     
     try:
-        # 计算困惑度（带错误处理）
+        # 首先计算困惑度（带错误处理）
         try:
             perplexity = compute_perplexity(segment)
         except Exception as e:
             print(f"为段落计算困惑度时出错: {str(e)}")
             perplexity = 25.0  # 返回中等困惑度作为降级方案
         
-        # 使用LLM客户端分析文本
+        # 根据困惑度推断初步AI可能性
+        if perplexity < 20:
+            ai_likelihood = "高（AI生成可能性大）"
+            initial_ai_judgment = True
+        elif perplexity < 30:
+            ai_likelihood = "中（可能为AI生成）"
+            initial_ai_judgment = perplexity < 25  # 25作为中等值的分界点
+        else:
+            ai_likelihood = "低（更可能为人类写作）"
+            initial_ai_judgment = False
+        
+        # 将困惑度和初步判断作为上下文传递给LLM进行分析
+        context = {
+            "perplexity": perplexity,
+            "initial_likelihood": ai_likelihood,
+            "initial_judgment": initial_ai_judgment
+        }
+        
+        # 使用LLM客户端分析文本，将困惑度作为上下文传入
         try:
-            is_ai_generated, reason = await llm_client.analyze_text(segment)
+            is_ai_generated, reason = await llm_client.analyze_text(segment, context=context)
         except Exception as e:
             print(f"调用LLM客户端分析文本时出错: {str(e)}")
             # 当LLM分析失败时，使用困惑度来进行基本判断
-            is_ai_generated = perplexity < 20
-            reason = f"LLM分析失败，基于困惑度推断: {str(e)}"
+            is_ai_generated = initial_ai_judgment
+            reason = f"LLM分析失败，基于困惑度({perplexity:.2f})推断: {str(e)}"
         
-        # 根据困惑度推断AI可能性，调整判断标准与estimate_ai_likelihood保持一致
-        if perplexity < 20:
-            ai_likelihood = "高（AI生成可能性大）"
-        elif perplexity < 30:
-            ai_likelihood = "中（可能为AI生成）"
-        else:
-            # 如果LLM判断为AI生成但困惑度较高，保留中等可能性
-            if is_ai_generated and perplexity < 35:
-                ai_likelihood = "中（可能为AI生成）"
-            else:
-                ai_likelihood = "低（更可能为人类写作）"
+        # 最终判断说明逻辑（修改为根据LLM判断调整AI可能性）
+        final_ai_likelihood = ai_likelihood  # 先使用初步判断作为默认值
         
-        # 确保LLM判断与困惑度判断有一定一致性
-        if is_ai_generated and ai_likelihood == "低（更可能为人类写作）" and perplexity < 35:
-            # 如果LLM判断为AI但困惑度不太支持，提高到中等级别
-            ai_likelihood = "中（可能为AI生成）"
-        elif not is_ai_generated and ai_likelihood == "高（AI生成可能性大）":
-            # 如果LLM判断为非AI但困惑度明显是AI特征，保持警惕
-            ai_likelihood = "中（可能为AI生成）"
-            reason += "（困惑度显示AI特征，需要注意）"
+        # 当LLM判断与困惑度计算结果矛盾时
+        if is_ai_generated and "低（更可能为人类写作）" in ai_likelihood:
+            # LLM认为是AI但困惑度高，调整ai_likelihood
+            final_ai_likelihood = "中（可能为AI生成）"  # 修改为中等可能性
+            if "困惑度" not in reason:
+                reason += f"（注意：LLM判断为AI生成，但困惑度为{perplexity:.2f}，较高）"
+        elif not is_ai_generated and "高（AI生成可能性大）" in ai_likelihood:
+            # LLM认为是人类但困惑度低，调整ai_likelihood
+            final_ai_likelihood = "中（可能为AI生成）"  # 修改为中等可能性
+            if "困惑度" not in reason:
+                reason += f"（注意：LLM判断为人类创作，但困惑度为{perplexity:.2f}，非常低）"
         
         return {
             "paragraph": segment,
             "ai_generated": is_ai_generated,
             "reason": reason,
             "perplexity": round(perplexity, 2),
-            "is_ai_likelihood": ai_likelihood
+            "is_ai_likelihood": final_ai_likelihood
         }
     except Exception as e:
         print(f"分析段落时出错: {str(e)}")
@@ -475,7 +487,7 @@ async def detect_ai_content_comprehensive(text: str) -> Dict[str, Any]:
         tasks = [analyze_segment_comprehensive(segment) for segment in valid_segments]
         
         # 控制并发数
-        MAX_CONCURRENCY = 5
+        MAX_CONCURRENCY = 2
         detailed_analysis = []
         ai_segments_count = 0
         perplexity_values = []
@@ -527,16 +539,17 @@ async def detect_ai_content_comprehensive(text: str) -> Dict[str, Any]:
         if segment_count <= 2:
             # 如果段落数量很少，LLM判断权重更高
             if ai_percentage > 90:  # 如果所有(或绝大多数)段落被判断为AI，强化AI判断
-                # 确保困惑度值合理
-                if avg_perplexity > 30:  # 如果困惑度高于30，但都被判为AI，适当调整
-                    avg_perplexity = min(avg_perplexity, 28)  # 调整到中等区间
-                # 提高风格一致性值，减少其影响
+                # 确保困惑度值合理 - 不再强行调整数值，因为这可能与LLM判断不一致
+                if avg_perplexity > 30:
+                    print(f"注意: 全部段落被判为AI但困惑度较高({avg_perplexity})")
+                
+                # 风格一致性仍可适当调整，因为这不影响段落级判断
                 if style_score < 0.8:
                     style_score = max(style_score, 0.85)  # 确保至少达到中等一致性
             elif ai_percentage == 0:  # 如果所有段落被判断为人类写作
-                # 确保困惑度合理
-                if avg_perplexity < 20:  # 如果困惑度非常低，但被判为人类，适当调整
-                    avg_perplexity = max(avg_perplexity, 22)  # 调整到中等区间
+                # 不再强行调整困惑度
+                if avg_perplexity < 20:
+                    print(f"注意: 全部段落被判为人类但困惑度非常低({avg_perplexity})")
         
         # 估计整体AI生成可能性
         ai_likelihood = estimate_ai_likelihood(avg_perplexity, style_score, ai_percentage, segment_count)
@@ -587,7 +600,7 @@ async def detect_ai_content(text: str, window_size: int = 500, step_size: int = 
     
     tasks = [analyze_segment(segment) for segment in valid_segments]
     
-    MAX_CONCURRENCY = 5
+    MAX_CONCURRENCY = 2
     
     for i in range(0, len(tasks), MAX_CONCURRENCY):
         batch = tasks[i:i+MAX_CONCURRENCY]
