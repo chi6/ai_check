@@ -10,7 +10,8 @@ except ImportError:
     # 如果导入失败，尝试安装PyMuPDF
     import subprocess
     import sys
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pymupdf==1.23.5"])
+    # 使用兼容Python 3.7的PyMuPDF版本
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pymupdf==1.22.3"])
     import fitz
 
 def extract_text_from_pdf(file_path):

@@ -143,7 +143,7 @@ def get_gpt2_model():
                 try:
                     # 设置超时加载
                     _gpt2_model = GPT2LMHeadModel.from_pretrained(
-                        local_model_path, 
+                        local_model_path,
                         local_files_only=True,
                         revision=None
                     )
