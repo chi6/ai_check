@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://106.52.168.146:8000/api',
+  baseURL: '/api',  // 使用相对路径，这样会自动使用当前域名
   timeout: 50000, // 50秒超时
 });
 
