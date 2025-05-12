@@ -1,0 +1,7 @@
+INFO:     Will watch for changes in these directories: ['/data/ai_check/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2334588] using StatReload
+Admin user already exists
+INFO:     Started server process [2334596]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

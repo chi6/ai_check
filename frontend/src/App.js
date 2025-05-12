@@ -5,33 +5,31 @@ import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import Result from './pages/Result';
 import History from './pages/History';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import PaymentPage from './pages/PaymentPage';
 import Header from './components/Header';
 import './App.css';
 
 const { Content, Footer } = Layout;
 
 function App() {
-  // 设置默认令牌值为一个假的值，这样所有认证检查都会通过
-  // eslint-disable-next-line no-unused-vars
-  const [token, setToken] = useState('dummy-token');
-  const [currentUser, setCurrentUser] = useState({
-    id: 'guest-user',
-    username: '访客用户',
-    email: 'guest@example.com'
-  });
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     // 保存token到本地存储
-    localStorage.setItem('token', token);
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
   }, [token]);
 
   const handleLogout = () => {
-    // 登出后仍然保持相同的访客状态
-    setCurrentUser({
-      id: 'guest-user',
-      username: '访客用户',
-      email: 'guest@example.com'
-    });
+    setToken('');
+    setCurrentUser(null);
+    localStorage.removeItem('token');
   };
 
   // 创建一个符合学术/教育领域特点的主题
@@ -89,14 +87,15 @@ function App() {
                 <Col xs={24} sm={24} md={22} lg={20} xl={18}>
                   <div className="site-layout-content">
                     <Routes>
-                      {/* 默认重定向到仪表盘，跳过登录页面 */}
-                      <Route path="/login" element={<Navigate to="/dashboard" />} />
-                      <Route path="/register" element={<Navigate to="/dashboard" />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/upload" element={<Upload />} />
-                      <Route path="/result/:taskId" element={<Result />} />
-                      <Route path="/history" element={<History />} />
-                      <Route path="*" element={<Navigate to="/dashboard" />} />
+                      <Route path="/login" element={<Login setToken={setToken} setCurrentUser={setCurrentUser} />} />
+                      <Route path="/register" element={<Register setToken={setToken} setCurrentUser={setCurrentUser} />} />
+                      <Route path="/dashboard" element={token ? <Dashboard /> : <Navigate to="/login" />} />
+                      <Route path="/upload" element={token ? <Upload /> : <Navigate to="/login" />} />
+                      <Route path="/result/:taskId" element={token ? <Result /> : <Navigate to="/login" />} />
+                      <Route path="/history" element={token ? <History /> : <Navigate to="/login" />} />
+                      <Route path="/payment" element={token ? <PaymentPage /> : <Navigate to="/login" />} />
+                      <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
+                      <Route path="*" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
                     </Routes>
                   </div>
                 </Col>

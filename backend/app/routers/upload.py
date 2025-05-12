@@ -6,6 +6,7 @@ from ..schemas.database_models import DetectionTask, User
 from ..utils.database import get_db
 from ..services.file_service import save_upload_file, validate_file
 from ..services.auth import get_current_user
+from ..services.usage_service import check_user_usage_eligibility, increase_user_usage_count
 import uuid
 import os
 
@@ -21,6 +22,17 @@ async def upload_file(
     """
     上传论文文件进行AI内容检测
     """
+    # 检查用户使用资格
+    eligibility = check_user_usage_eligibility(db, current_user.id)
+    if not eligibility["can_use"]:
+        raise HTTPException(
+            status_code=402,  # Payment Required
+            detail={
+                "message": eligibility["reason"],
+                "remaining_free_usage": eligibility["remaining_free_usage"]
+            }
+        )
+    
     # 验证文件
     if not validate_file(file):
         raise HTTPException(status_code=400, detail="不支持的文件格式，请上传PDF、DOCX或TXT文件")
@@ -43,18 +55,21 @@ async def upload_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
     
-    # 保存任务信息到数据库 - 使用访客用户ID关联所有上传任务
+    # 保存任务信息到数据库
     task = DetectionTask(
         id=task_id,
         filename=filename,
         file_size=file_size,
         status=TaskStatus.UPLOADED.value,
-        owner_id=current_user.id  # 此处不需要修改，因为当前用户已经是访客用户
+        owner_id=current_user.id
     )
     
     db.add(task)
     db.commit()
     db.refresh(task)
+    
+    # 增加用户使用次数计数（如果需要的话）
+    increase_user_usage_count(db, current_user.id)
     
     # 添加异步处理任务
     # (此处将在detect路由中实现)

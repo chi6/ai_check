@@ -1,0 +1,541 @@
+nohup: ignoring input
+INFO:     Will watch for changes in these directories: ['/data/ai_check/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [54751] using StatReload
+Admin user already exists
+INFO:     Started server process [54795]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+运行在离线模式，将只使用本地模型
+警告: 无法导入订阅计划初始化脚本，订阅计划可能需要手动初始化
+NLTK punkt 数据已下载
+配置中文字体失败: cannot import name 'setup_chinese_fonts' from 'app.utils.font_utils' (/data/ai_check/backend/app/utils/font_utils.py)
+使用默认字体设置
+数据库表创建/更新成功
+启动应用...
+Admin user already exists
+跳过订阅计划初始化
+系统中未找到中文字体，将下载 Noto Sans CJK SC...
+字体 NotoSansCJKsc-Regular.otf 已存在
+
+-----
+
+运行在离线模式，将只使用本地模型
+
+-----
+
+
+支付配置状态: {'stripe': True, 'wechat': True, 'alipay': True}
+
+从Header获取到令牌: eyJhbGciOiJIUzI...
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 200 OK
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+认证错误: 路径=/api/upload, 方法=POST
+请求头: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmY2EzNzA2Yy0zNjFmLTQxNjUtYTgxZS1iOThhMmYzZWJhNjgiLCJleHAiOjE3NDY2MzE3NzV9.cZ8fkV5lx8RF0CKHn5FyzdgYbpDQbAuttrwz06A9MZU
+INFO:     193.25.215.71:0 - "POST /api/upload HTTP/1.0" 401 Unauthorized
+尝试登录: 用户名=xuudadan@gmail.com
+用户验证成功: xuudadan@gmail.com
+生成访问令牌成功，有效期: 86399秒
+已将令牌设置到Cookie中
+INFO:     193.25.215.71:0 - "POST /api/user/token HTTP/1.0" 200 OK
+从Cookie获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/user/me HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/user/tasks HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+保存文件到: uploads/518725af-6762-4483-8147-0a057344c63a
+INFO:     193.25.215.71:0 - "POST /api/upload HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "POST /api/detect/518725af-6762-4483-8147-0a057344c63a/start HTTP/1.0" 200 OK
+分割后的片段数量: 16
+从本地加载模型: models/all-MiniLM-L6-v2
+离线模式下无法加载本地句子转换模型: Error no file named pytorch_model.bin found in directory models/all-MiniLM-L6-v2/ but there is a file for Flax weights. Use `from_flax=True` to load this model from those weights.
+无法加载SentenceTransformer模型: Error no file named pytorch_model.bin found in directory models/all-MiniLM-L6-v2/ but there is a file for Flax weights. Use `from_flax=True` to load this model from those weights.
+使用TF-IDF作为备选嵌入模型
+分析段落: In 2003, Martin Eberhard and Marc Tarpenning created Roadster in California, focusing on the high-end sports car market. After Elon Musk took over the company, it was renamed Tesla and began to produce some mass-market models such as Model S and Model X.
+从本地加载GPT-2模型: models/gpt2
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+分析段落: Moreover, its business is divided into three main modules: electric vehicles, software services, and energy. Under Musk's leadership, the company experienced rapid growth and finally went public on NASDAQ in June 2010 as the first pure electric vehicle company.
+分析段落: Aiming to accelerate the transition to sustainable energy and reduce carbon emissions, Tesla has established a global factory network (including factories in the United States, Berlin, and the Shanghai Gigafactory).
+分析段落: As an industry leader and a frontier of innovation, Tesla has driven the transportation and energy sectors towards sustainability, reshaping the automotive industry chain (Tesla, Inc., 2025b).
+分析段落: The reason I admire Tesla lies in its pivotal role in global electric vehicle purchases.
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+分析段落: Since its listing on NASDAQ in 2010 as the first pure electric vehicle company, Tesla has consistently ranked at the top of global automotive market capitalization, far outperforming traditional giants like Toyota and Volkswagen.
+分析段落: Its Model Y has become the world's best-selling electric vehicle, a clear indication of its market leadership. In 2014, Tesla made all its patents public, a move that encouraged collaborative progress within the industry and accelerated the global transition to electric vehicles.
+分析段落: This action aligns closely with its strategic goal of reducing fuel dependence through electric vehicles and clean energy products(Tesla, Inc., 2024). When it comes to the sales model, Tesla adheres to a direct sales approach, reaching consumers directly instead of through dealerships.
+分析段落: This strategy truly passes on the benefits of technological innovation to customers, enhancing both user experience and profitability(Tesla, Inc., 2025a). In my view, Tesla stands distinct from other electric vehicle companies.
+分析段落: Its strategies embody grand human ideals, and the company has been consistently working towards realizing them.
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+分析段落: This article will conduct an external analysis of the environment for Tesla's strategy implementation using the PESTLE framework and Porter's Five Forces model, and then carry out an internal analysis through SWOT.
+分析段落: Subsequently, it will use TWOS analysis to identify four strategies for Tesla: SO (leveraging strengths to seize opportunities), ST (utilizing strengths to avoid threats), WO (remedying weaknesses to grasp opportunities), and WT (reducing weaknesses and evading threats).
+分析段落: Based on these, a strategic implementation roadmap will be formulated, resulting in short-term, medium-term, and long-term strategic plans.
+分析段落: Finally, a change management plan will be obtained through force field analysis, supplemented by management communication and performance management plans for relevant stakeholders. Upon completion of all plans, the Balanced Scorecard will be used to evaluate and improve the strategies.
+分析段落: The aim of this article is to analyze Tesla's strategic decisions and core advantages in order to maintain its long-term market leadership position.
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+任务 518725af-6762-4483-8147-0a057344c63a 检测完成，AI生成内容百分比: 60.0%
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/detect/518725af-6762-4483-8147-0a057344c63a HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     193.25.215.71:0 - "GET /api/report/518725af-6762-4483-8147-0a057344c63a?format=json HTTP/1.0" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.234.218.10:33360 - "GET / HTTP/1.0" 200 OK
+INFO:     172.234.218.10:33376 - "GET /nice%20ports%2C/Trinity.txt.bak HTTP/1.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.234.218.10:33412 - "OPTIONS / HTTP/1.0" 405 Method Not Allowed
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.234.218.10:36564 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.234.218.10:36586 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     180.101.245.248:59800 - "GET / HTTP/1.1" 200 OK
+INFO:     59.83.208.106:18174 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.103:55534 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.103:37536 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.103:37562 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     167.94.145.103:37568 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.145.103:37652 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     47.237.13.15:42192 - "GET / HTTP/1.1" 200 OK
+INFO:     47.237.13.15:37648 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     199.45.155.101:43164 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.155.101:50802 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.155.101:50816 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     199.45.155.101:50832 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.155.101:48146 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     51.81.181.164:40021 - "GET / HTTP/1.1" 200 OK
+INFO:     195.184.76.72:43903 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     148.113.214.206:52790 - "GET / HTTP/1.1" 200 OK
+INFO:     198.235.24.123:57860 - "GET / HTTP/1.1" 200 OK
+INFO:     135.119.88.104:43960 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     61.129.155.196:44280 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     61.129.155.196:44282 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     195.184.76.229:56117 - "GET / HTTP/1.1" 200 OK
+INFO:     195.184.76.107:42213 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     42.193.132.4:15187 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     3.138.154.21:39140 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     106.75.16.162:37730 - "GET / HTTP/1.1" 200 OK
+INFO:     106.75.16.162:37784 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     106.75.16.162:37862 - "GET /robots.txt HTTP/1.1" 404 Not Found
+INFO:     106.75.16.162:37864 - "GET /sitemap.xml HTTP/1.1" 404 Not Found
+INFO:     64.62.197.166:52749 - "GET / HTTP/1.1" 200 OK
+INFO:     64.62.197.157:26019 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     64.62.197.163:36523 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     64.62.197.162:5137 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+INFO:     180.163.30.100:0 - "GET /api/.env HTTP/1.0" 404 Not Found
+INFO:     68.183.199.198:41000 - "GET / HTTP/1.1" 200 OK
+INFO:     68.183.199.198:41002 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     193.34.212.89:46102 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     3.145.34.44:33858 - "GET / HTTP/1.1" 200 OK
+INFO:     45.156.128.37:46103 - "GET / HTTP/1.1" 200 OK
+INFO:     222.113.180.198:63121 - "GET / HTTP/1.0" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     91.196.152.90:49959 - "GET / HTTP/1.1" 200 OK
+INFO:     91.196.152.20:42783 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     167.94.146.57:34422 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.146.57:46740 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.146.57:46752 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     167.94.146.57:46762 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.146.57:46802 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     119.96.25.158:60298 - "GET /.env HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.196:40302 - "GET / HTTP/1.1" 200 OK
+INFO:     162.142.125.196:51598 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     162.142.125.196:51610 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.196:52914 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     146.190.144.73:41842 - "GET / HTTP/1.1" 200 OK
+INFO:     146.190.144.73:41844 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     125.122.33.125:51980 - "GET / HTTP/1.1" 200 OK
+INFO:     125.122.33.125:52006 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     103.203.57.20:53832 - "GET / HTTP/1.1" 200 OK
+INFO:     193.34.212.89:37048 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.106:52820 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.106:39132 - "GET / HTTP/1.1" 200 OK
+INFO:     167.94.145.106:39144 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     167.94.145.106:39146 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     167.94.145.106:39184 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     180.101.245.247:45022 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.61:38208 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     185.242.226.48:48676 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.154.159:34410 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.154.159:58230 - "GET / HTTP/1.1" 200 OK
+INFO:     199.45.154.159:58240 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     199.45.154.159:58244 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     199.45.154.159:36302 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.113:60324 - "GET / HTTP/1.1" 200 OK
+INFO:     162.142.125.113:51480 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     162.142.125.113:51496 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.113:51742 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     205.210.31.246:59134 - "GET / HTTP/1.1" 200 OK
+INFO:     45.148.10.42:0 - "GET /api/.git/config HTTP/1.0" 404 Not Found
+INFO:     45.148.10.42:0 - "GET /api/.env HTTP/1.0" 404 Not Found
+INFO:     162.142.125.37:56516 - "GET / HTTP/1.1" 200 OK
+INFO:     162.142.125.37:47466 - "GET / HTTP/1.1" 200 OK
+INFO:     162.142.125.37:47472 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     162.142.125.37:34406 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     162.142.125.37:34424 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     148.113.214.206:52500 - "GET / HTTP/1.1" 200 OK
+INFO:     89.248.172.41:54126 - "HEAD /playlist.m3u HTTP/1.1" 404 Not Found
+INFO:     220.82.147.17:60407 - "GET / HTTP/1.0" 200 OK
+INFO:     220.79.230.143:63603 - "GET / HTTP/1.0" 200 OK
+INFO:     61.72.65.232:60945 - "GET / HTTP/1.0" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     193.34.212.89:43776 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     69.164.213.157:53420 - "GET / HTTP/1.0" 200 OK
+INFO:     69.164.213.157:62564 - "GET /nice%20ports%2C/Trinity.txt.bak HTTP/1.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     69.164.213.157:62606 - "OPTIONS / HTTP/1.0" 405 Method Not Allowed
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     69.164.213.157:1322 - "GET / HTTP/1.1" 200 OK
+INFO:     69.164.213.157:1338 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     71.132.169.236:63449 - "GET / HTTP/1.0" 200 OK
+INFO:     124.220.11.234:0 - "GET /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     167.71.78.181:48794 - "GET / HTTP/1.1" 200 OK
+INFO:     167.71.78.181:48810 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     121.147.126.122:62181 - "GET / HTTP/1.0" 200 OK
+INFO:     193.34.212.89:46996 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     209.38.89.71:54572 - "GET / HTTP/1.1" 200 OK
+INFO:     209.38.89.71:54576 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     82.64.165.148:0 - "GET /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.0" 404 Not Found
+INFO:     147.185.132.117:58152 - "GET / HTTP/1.1" 200 OK
+INFO:     193.34.212.89:33590 - "GET / HTTP/1.1" 200 OK
+INFO:     65.49.1.33:25383 - "GET / HTTP/1.1" 200 OK
+INFO:     65.49.1.36:23273 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     65.49.1.35:38519 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     65.49.1.24:12353 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+INFO:     159.203.44.105:46446 - "GET /aaa9 HTTP/1.1" 404 Not Found
+INFO:     159.203.44.105:46460 - "GET /aab8 HTTP/1.1" 404 Not Found
+INFO:     159.203.44.105:59556 - "GET / HTTP/1.1" 200 OK
+INFO:     222.105.195.139:62126 - "GET / HTTP/1.0" 200 OK
+INFO:     195.211.191.170:0 - "GET /api/shared/config/config.env HTTP/1.0" 404 Not Found
+INFO:     195.211.191.170:0 - "GET /api/.env HTTP/1.0" 404 Not Found
+INFO:     220.94.192.77:62278 - "GET / HTTP/1.0" 200 OK
+INFO:     121.167.226.99:60557 - "GET / HTTP/1.0" 200 OK
+INFO:     198.235.24.243:64030 - "GET / HTTP/1.1" 200 OK
+INFO:     45.156.129.135:54731 - "GET / HTTP/1.1" 200 OK
+INFO:     185.247.137.139:43471 - "GET / HTTP/1.1" 200 OK
+INFO:     59.83.208.103:52530 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.53:22546 - "GET / HTTP/1.1" 200 OK
+INFO:     103.39.93.93:0 - "GET /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.0" 404 Not Found
+INFO:     148.113.214.206:45008 - "GET / HTTP/1.1" 200 OK
+INFO:     148.113.214.206:57528 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     47.236.251.113:35156 - "GET / HTTP/1.1" 200 OK
+INFO:     47.236.251.113:35168 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     185.91.127.81:35142 - "CONNECT api.ip.pn%3A443 HTTP/1.1" 404 Not Found
+INFO:     147.185.132.237:62604 - "GET / HTTP/1.1" 200 OK
+INFO:     69.164.217.74:52335 - "GET / HTTP/1.1" 200 OK
+INFO:     205.210.31.248:58186 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     185.91.127.81:14512 - "CONNECT api.ip.pn%3A443 HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     139.59.98.7:49776 - "GET / HTTP/1.1" 200 OK
+INFO:     139.59.98.7:49778 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     193.34.212.89:38556 - "GET / HTTP/1.1" 200 OK
+INFO:     172.236.228.39:26794 - "GET / HTTP/1.1" 200 OK
+INFO:     198.235.24.16:63958 - "GET / HTTP/1.1" 200 OK
+INFO:     206.168.34.38:35782 - "GET / HTTP/1.1" 200 OK
+INFO:     206.168.34.38:35786 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     206.168.34.38:35798 - "PRI %2A HTTP/2.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     206.168.34.38:39708 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     111.7.96.147:50874 - "GET / HTTP/1.1" 200 OK
+INFO:     123.160.223.72:51880 - "GET / HTTP/1.1" 200 OK
+INFO:     123.160.223.73:12559 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     36.41.64.64:58866 - "GET / HTTP/1.1" 200 OK
+INFO:     36.41.64.64:58920 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     180.101.245.247:50252 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.76:52326 - "GET / HTTP/1.1" 200 OK
+INFO:     125.122.15.86:48642 - "GET / HTTP/1.1" 200 OK
+INFO:     125.122.15.86:48664 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     59.83.208.108:47456 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.117:46418 - "GET / HTTP/1.1" 200 OK
+INFO:     65.49.20.69:3455 - "GET / HTTP/1.1" 200 OK
+INFO:     65.49.20.113:51069 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     65.49.20.117:59911 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     65.49.20.77:48313 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+INFO:     159.75.198.6:35313 - "GET / HTTP/1.1" 200 OK
+INFO:     211.227.218.148:63282 - "GET / HTTP/1.0" 200 OK
+INFO:     3.145.10.243:59470 - "GET / HTTP/1.1" 200 OK
+INFO:     3.145.10.243:59472 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     185.91.127.81:34778 - "CONNECT api.ip.pn%3A443 HTTP/1.1" 404 Not Found
+INFO:     78.153.140.224:0 - "GET /api/.env HTTP/1.0" 404 Not Found
+INFO:     78.153.140.224:0 - "GET /api HTTP/1.0" 404 Not Found
+INFO:     103.203.57.20:45600 - "GET / HTTP/1.1" 200 OK
+INFO:     125.143.129.54:63411 - "GET / HTTP/1.0" 200 OK
+INFO:     194.233.72.214:0 - "GET /api/shared/config/config.env HTTP/1.0" 404 Not Found
+INFO:     194.233.72.214:0 - "GET /api/.env HTTP/1.0" 404 Not Found
+INFO:     185.91.127.81:12012 - "CONNECT api.ip.pn%3A443 HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     193.34.212.89:53550 - "GET / HTTP/1.1" 200 OK
+INFO:     146.190.134.221:58408 - "POST /api/client/update?arch=amd64&commit=08059e95dacafe0bf6e5782f8e2c8ec9cd8c5a17&os=windows HTTP/1.1" 404 Not Found
+INFO:     205.210.31.248:59120 - "GET / HTTP/1.1" 200 OK
+INFO:     193.34.212.89:41464 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.151:52390 - "GET / HTTP/1.1" 200 OK
+INFO:     220.196.160.61:23938 - "GET / HTTP/1.1" 200 OK
+INFO:     148.113.214.206:54594 - "GET / HTTP/1.1" 200 OK
+INFO:     49.142.41.16:63297 - "GET / HTTP/1.0" 200 OK
+INFO:     219.132.37.52:0 - "GET /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     47.84.177.166:36940 - "GET / HTTP/1.1" 200 OK
+INFO:     47.84.177.166:37066 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     50.206.50.10:60235 - "GET / HTTP/1.0" 200 OK
+INFO:     64.227.73.78:44348 - "GET / HTTP/1.1" 200 OK
+INFO:     193.34.212.89:37260 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     170.64.236.179:60346 - "GET / HTTP/1.1" 200 OK
+INFO:     170.64.236.179:60360 - "GET /login HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     172.233.183.40:51014 - "GET / HTTP/1.0" 200 OK
+INFO:     172.233.183.40:60394 - "GET /nice%20ports%2C/Trinity.txt.bak HTTP/1.0" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.233.183.40:60424 - "OPTIONS / HTTP/1.0" 405 Method Not Allowed
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.233.183.40:48892 - "GET / HTTP/1.1" 200 OK
+INFO:     172.233.183.40:48904 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     14.47.72.87:62396 - "GET / HTTP/1.0" 200 OK
+INFO:     205.210.31.73:61850 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+从Header获取到令牌: eyJhbGciOiJIUzI...
+从Header获取到令牌: eyJhbGciOiJIUzI...
+认证错误: 路径=/api/user/usage, 方法=GET
+请求头: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNmFjM2EwYi0yYmRlLTRmMDItOWY5NC04ZmIyMWU0Y2Y1ZWIiLCJleHAiOjE3NDY3MTc0NTF9.BtXysUDxMJgDqrfenFA-8mA4-6IKhmCz5QcWc7Vj6DY
+认证错误: 路径=/api/user/tasks, 方法=GET
+请求头: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNmFjM2EwYi0yYmRlLTRmMDItOWY5NC04ZmIyMWU0Y2Y1ZWIiLCJleHAiOjE3NDY3MTc0NTF9.BtXysUDxMJgDqrfenFA-8mA4-6IKhmCz5QcWc7Vj6DY
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 401 Unauthorized
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 401 Unauthorized
+从Header获取到令牌: eyJhbGciOiJIUzI...
+认证错误: 路径=/api/user/tasks, 方法=GET
+请求头: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNmFjM2EwYi0yYmRlLTRmMDItOWY5NC04ZmIyMWU0Y2Y1ZWIiLCJleHAiOjE3NDY3MTc0NTF9.BtXysUDxMJgDqrfenFA-8mA4-6IKhmCz5QcWc7Vj6DY
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 401 Unauthorized
+从Header获取到令牌: eyJhbGciOiJIUzI...
+认证错误: 路径=/api/user/usage, 方法=GET
+请求头: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNmFjM2EwYi0yYmRlLTRmMDItOWY5NC04ZmIyMWU0Y2Y1ZWIiLCJleHAiOjE3NDY3MTc0NTF9.BtXysUDxMJgDqrfenFA-8mA4-6IKhmCz5QcWc7Vj6DY
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 401 Unauthorized
+尝试登录: 用户名=719603850@qq.com
+用户验证成功: 719603850@qq.com
+生成访问令牌成功，有效期: 86399秒
+已将令牌设置到Cookie中
+INFO:     45.90.208.235:0 - "POST /api/user/token HTTP/1.0" 200 OK
+从Cookie获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/me HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/tasks HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/plans HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     45.90.208.235:0 - "GET /api/plans HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     103.56.52.23:0 - "POST /api/checkout HTTP/1.0" 404 Not Found
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     103.56.52.23:0 - "GET /api/user/usage HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     103.56.52.23:0 - "GET /api/payments HTTP/1.0" 200 OK
+从Header获取到令牌: eyJhbGciOiJIUzI...
+INFO:     103.56.52.23:0 - "GET /api/payments HTTP/1.0" 200 OK
+INFO:     20.163.15.176:52610 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  StatReload detected changes in 'scripts/update_stripe_plans.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [54795]
+INFO:     Started server process [1653630]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/services/payment_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1653630]
+运行在离线模式，将只使用本地模型
+警告: 无法导入订阅计划初始化脚本，订阅计划可能需要手动初始化
+NLTK punkt 数据已下载
+配置中文字体失败: cannot import name 'setup_chinese_fonts' from 'app.utils.font_utils' (/data/ai_check/backend/app/utils/font_utils.py)
+使用默认字体设置
+数据库表创建/更新成功
+启动应用...
+Admin user already exists
+跳过订阅计划初始化
+系统中未找到中文字体，将下载 Noto Sans CJK SC...
+字体 NotoSansCJKsc-Regular.otf 已存在
+
+-----
+
+运行在离线模式，将只使用本地模型
+
+-----
+
+
+支付配置状态: {'stripe': True, 'wechat': True, 'alipay': True}
+
+INFO:     Started server process [1653758]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/routers/payment.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1653758]
+运行在离线模式，将只使用本地模型
+警告: 无法导入订阅计划初始化脚本，订阅计划可能需要手动初始化
+NLTK punkt 数据已下载
+配置中文字体失败: cannot import name 'setup_chinese_fonts' from 'app.utils.font_utils' (/data/ai_check/backend/app/utils/font_utils.py)
+使用默认字体设置
+数据库表创建/更新成功
+启动应用...
+Admin user already exists
+跳过订阅计划初始化
+系统中未找到中文字体，将下载 Noto Sans CJK SC...
+字体 NotoSansCJKsc-Regular.otf 已存在
+
+-----
+
+运行在离线模式，将只使用本地模型
+
+-----
+
+
+支付配置状态: {'stripe': True, 'wechat': True, 'alipay': True}
+
+INFO:     Started server process [1653849]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+运行在离线模式，将只使用本地模型
+警告: 无法导入订阅计划初始化脚本，订阅计划可能需要手动初始化
+NLTK punkt 数据已下载
+配置中文字体失败: cannot import name 'setup_chinese_fonts' from 'app.utils.font_utils' (/data/ai_check/backend/app/utils/font_utils.py)
+使用默认字体设置
+数据库表创建/更新成功
+启动应用...
+Admin user already exists
+跳过订阅计划初始化
+系统中未找到中文字体，将下载 Noto Sans CJK SC...
+字体 NotoSansCJKsc-Regular.otf 已存在
+
+-----
+
+运行在离线模式，将只使用本地模型
+
+-----
+
+
+支付配置状态: {'stripe': True, 'wechat': True, 'alipay': True}
+
+从Header获取到令牌: YOUR_TOKEN_HERE...
+认证错误: 路径=/api/plans, 方法=GET
+请求头: Bearer YOUR_TOKEN_HERE
+INFO:     127.0.0.1:60028 - "GET /api/plans HTTP/1.1" 401 Unauthorized
+WARNING:  StatReload detected changes in 'test_stripe_plans.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1653849]
+INFO:     Started server process [1655644]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

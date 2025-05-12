@@ -54,6 +54,9 @@ export const userApi = {
   
   // 获取用户任务列表
   getTasks: () => api.get('/user/tasks'),
+  
+  // 获取用户使用情况
+  getUsage: () => api.get('/user/usage'),
 };
 
 // 文件上传相关API
@@ -129,6 +132,48 @@ export const reportApi = {
   },
   
   // 注意: PDF格式功能已从后端移除
+};
+
+// 支付相关API
+export const paymentApi = {
+  // 获取所有订阅计划
+  getPlans: () => api.get('/plans'),
+  
+  // 获取用户支付历史
+  getPaymentHistory: () => api.get('/payments'),
+  
+  // 获取用户订阅
+  getSubscriptions: () => api.get('/subscriptions'),
+  
+  // 获取特定计划的Stripe链接
+  getPlanStripeLink: (planId) => api.get(`/plans/${planId}/stripe-link`),
+  
+  // 创建支付(购买计划)
+  checkout: (planId, paymentMethod, paymentMethodId, returnUrl) => api.post('/checkout', {
+    plan_id: planId,
+    payment_method: paymentMethod,
+    payment_method_id: paymentMethodId,
+    return_url: returnUrl
+  }),
+  
+  // 创建Stripe支付
+  createStripePayment: (amount, currency, paymentMethodId, returnUrl) => api.post('/payments/stripe', {
+    amount,
+    currency,
+    payment_method_id: paymentMethodId,
+    return_url: returnUrl
+  }),
+  
+  // 确认Stripe支付
+  confirmStripePayment: (paymentId, paymentIntentId) => api.post(`/payments/stripe/${paymentId}/confirm`, {
+    payment_intent_id: paymentIntentId
+  }),
+  
+  // 取消订阅
+  cancelSubscription: (subscriptionId) => api.delete(`/subscriptions/${subscriptionId}`),
+  
+  // 支付宝公钥
+  alipayPublicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsex7bh615RWPLRxpbyZ8oo86ay/D0ZtB1NEBWG4MGpP7wPXTcl0435z1zxQzmpMhpKIw/F0r/4E4y77q348wAF7ED0jxfLChTwiSare1HiTJ1/kSX0nqOooRJr4hSnJyoGQVPjiKoP5H4salW8/lECtgEXl62kMfS4vUIivASTHuiHoT+uBmFdyJXo24KJ4ea80vB3ns7QGmQimIHzykICJg2iJj5sbBjpomHZVBAIgot51ScK376zr8951dIdxuQcx4jQTdEJUeAzRBKpDmiYEcLMDY35ykKYcz2X6qsmU2o/Rq77VT9VTkWTioqPqKed1conxtcSumhIikpMsRyQIDAQAB',
 };
 
 export default api; 

@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert, Spin } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert, Spin, Modal, Result, Row, Col, Divider } from 'antd';
 import { 
   InboxOutlined, 
   FileTextOutlined, 
   CheckCircleOutlined, 
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  DollarOutlined,
+  WarningOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { uploadApi, detectApi } from '../api/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { uploadApi, detectApi, userApi } from '../api/api';
 import { showSuccess, showWarning, showError, notifySuccess, notifyError, notifyInfo } from '../utils/notification';
 
 const { Dragger } = Upload;
@@ -24,8 +26,29 @@ const UploadPage = () => {
   const [error, setError] = useState(null);
   const [detectingFiles, setDetectingFiles] = useState([]);
   const [statusMessage, setStatusMessage] = useState('');
+  const [userUsage, setUserUsage] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [usageModalVisible, setUsageModalVisible] = useState(false);
   
   const navigate = useNavigate();
+
+  // 获取用户使用情况
+  useEffect(() => {
+    fetchUserUsage();
+  }, []);
+
+  const fetchUserUsage = async () => {
+    setUsageLoading(true);
+    try {
+      const usageData = await userApi.getUsage();
+      setUserUsage(usageData);
+      console.log('用户使用情况:', usageData);
+    } catch (error) {
+      console.error('获取用户使用情况失败:', error);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
 
   const uploadProps = {
     name: 'file',
@@ -61,7 +84,16 @@ const UploadPage = () => {
       showWarning('请先选择要上传的文件！');
       return;
     }
-    
+
+    // 检查用户是否有使用权限
+    if (!usageLoading && userUsage) {
+      if (!userUsage.can_use) {
+        // 显示提示对话框
+        setUsageModalVisible(true);
+        return;
+      }
+    }
+
     setUploading(true);
     setError(null);
     setCurrentStep(0);
@@ -105,9 +137,36 @@ const UploadPage = () => {
       
       setCurrentStep(1);
       showSuccess('文件上传成功！');
+
+      // 上传成功后更新使用情况
+      fetchUserUsage();
     } catch (error) {
       console.error('上传失败:', error);
-      setError('文件上传失败：' + (error.response?.data?.detail || error.message || '请稍后再试'));
+      if (error.response && error.response.status === 402) {
+        // 402 Payment Required - 使用次数不足
+        const errorDetails = error.response.data;
+        Modal.confirm({
+          title: '使用次数不足',
+          content: (
+            <div>
+              <p>{errorDetails.message || '您的免费使用次数已用完'}</p>
+              <p>您有以下选择：</p>
+              <ul>
+                <li>购买单次使用（5元/次）</li>
+                <li>购买日套餐（18元/天，无限次使用）</li>
+                <li>购买月套餐（200元/月，无限次使用）</li>
+              </ul>
+            </div>
+          ),
+          okText: '前往充值',
+          cancelText: '取消',
+          onOk: () => {
+            navigate('/payment');
+          }
+        });
+      } else {
+        setError('文件上传失败：' + (error.response?.data?.detail || error.message || '请稍后再试'));
+      }
     } finally {
       setUploading(false);
     }
@@ -333,10 +392,105 @@ const UploadPage = () => {
     }
   ];
 
+  // 渲染用户使用限制提示对话框
+  const renderUsageModal = () => {
+    return (
+      <Modal
+        title="检测次数已用完"
+        open={usageModalVisible}
+        onCancel={() => setUsageModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setUsageModalVisible(false)}>
+            取消
+          </Button>,
+          <Button 
+            key="payment" 
+            type="primary" 
+            onClick={() => {
+              setUsageModalVisible(false);
+              navigate('/payment');
+            }}
+          >
+            前往充值
+          </Button>
+        ]}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <WarningOutlined style={{ fontSize: 48, color: '#faad14', marginBottom: 16 }} />
+          <Typography.Title level={4}>您的检测次数已用完</Typography.Title>
+          <Typography.Paragraph>
+            {userUsage?.reason || '您需要购买检测次数或订阅服务才能继续使用。'}
+          </Typography.Paragraph>
+          <Divider />
+          <Typography.Title level={5}>购买选项</Typography.Title>
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={8}>
+              <Card hoverable size="small" title="单次使用">
+                <p>价格: ¥5.00</p>
+                <p>次数: 1次</p>
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card hoverable size="small" title="日套餐">
+                <p>价格: ¥18.00</p>
+                <p>无限次/24小时</p>
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card hoverable size="small" title="月套餐">
+                <p>价格: ¥200.00</p>
+                <p>无限次/30天</p>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      </Modal>
+    );
+  };
+
   return (
     <div>
       <Title level={2}>上传论文检测</Title>
       <Paragraph>支持PDF、DOCX和TXT格式文件，文件大小不超过50MB。</Paragraph>
+      
+      {/* 用户使用限制提示 */}
+      {!usageLoading && userUsage && (
+        <div style={{ marginBottom: 24 }}>
+          {userUsage.active_subscription ? (
+            <Alert
+              message="您有活跃的订阅计划"
+              description={`计划: ${userUsage.active_subscription.plan_name}，有效期至: ${new Date(userUsage.active_subscription.end_time).toLocaleDateString('zh-CN')}`}
+              type="success"
+              showIcon
+            />
+          ) : userUsage.can_use ? (
+            <Alert
+              message="免费使用次数"
+              description={`您还有 ${userUsage.remaining_free_usage} 次免费使用机会`}
+              type="info"
+              showIcon
+            />
+          ) : (
+            <Alert
+              message="检测次数已用完"
+              description={
+                <span>
+                  {userUsage.reason} 
+                  <Button 
+                    type="link" 
+                    onClick={() => navigate('/payment')}
+                    style={{ padding: '0 4px' }}
+                  >
+                    立即充值
+                  </Button>
+                </span>
+              }
+              type="warning"
+              showIcon
+            />
+          )}
+        </div>
+      )}
       
       <Steps current={currentStep} style={{ marginBottom: 30 }}>
         {steps.map(item => (
@@ -465,6 +619,8 @@ const UploadPage = () => {
           </div>
         </Card>
       )}
+      
+      {renderUsageModal()}
     </div>
   );
 };

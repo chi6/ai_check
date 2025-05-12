@@ -7,7 +7,8 @@ import {
   HistoryOutlined, 
   UserOutlined, 
   LogoutOutlined,
-  MenuOutlined
+  MenuOutlined,
+  LoginOutlined
 } from '@ant-design/icons';
 import '../styles/Header.css';
 
@@ -31,21 +32,20 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
     };
   }, []);
 
-  // 移除获取用户信息的逻辑，始终使用访客用户
   const handleLogout = () => {
     onLogout();
-    message.success('已切换访客');
-    navigate('/dashboard');
+    message.success('退出登录成功');
+    navigate('/login');
     setDrawerVisible(false);
   };
 
-  const userMenu = [
+  const userMenu = currentUser ? [
     {
       key: 'username',
       disabled: true,
       label: (
         <>
-          <UserOutlined /> {currentUser?.username || '访客用户'}
+          <UserOutlined /> {currentUser.username}
         </>
       )
     },
@@ -57,11 +57,11 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
       onClick: handleLogout,
       label: (
         <>
-          <LogoutOutlined /> 切换访客
+          <LogoutOutlined /> 退出登录
         </>
       )
     }
-  ];
+  ] : [];
 
   const getSelectedKeys = () => {
     const path = location.pathname;
@@ -95,6 +95,59 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
     }
   };
 
+  const renderUserSection = () => {
+    if (token && currentUser) {
+      return (
+        <Dropdown menu={{ items: userMenu }} placement="bottomRight">
+          <Button type="text" style={{ color: 'white' }}>
+            <UserOutlined /> {currentUser.username}
+          </Button>
+        </Dropdown>
+      );
+    } else {
+      return (
+        <Space>
+          <Button type="primary" onClick={() => navigate('/login')}>
+            <LoginOutlined /> 登录
+          </Button>
+          <Button onClick={() => navigate('/register')}>
+            注册
+          </Button>
+        </Space>
+      );
+    }
+  };
+
+  const renderMobileUserSection = () => {
+    if (token && currentUser) {
+      return (
+        <div style={{ padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: '16px' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div>
+              <UserOutlined /> {currentUser.username}
+            </div>
+            <Button type="primary" danger onClick={handleLogout} block>
+              <LogoutOutlined /> 退出登录
+            </Button>
+          </Space>
+        </div>
+      );
+    } else {
+      return (
+        <div style={{ padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: '16px' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Button type="primary" onClick={() => { navigate('/login'); setDrawerVisible(false); }} block>
+              <LoginOutlined /> 登录
+            </Button>
+            <Button onClick={() => { navigate('/register'); setDrawerVisible(false); }} block>
+              注册
+            </Button>
+          </Space>
+        </div>
+      );
+    }
+  };
+
   return (
     <AntHeader className="app-header">
       <div className="header-container">
@@ -121,11 +174,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
               onClick={handleMenuClick}
             />
             <div className="user-section">
-              <Dropdown menu={{ items: userMenu }} placement="bottomRight">
-                <Button type="text" style={{ color: 'white' }}>
-                  <UserOutlined /> {currentUser?.username || '访客用户'} 
-                </Button>
-              </Dropdown>
+              {renderUserSection()}
             </div>
           </>
         )}
@@ -145,16 +194,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
             onClick={handleMenuClick}
             style={{ border: 'none' }}
           />
-          <div style={{ padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: '16px' }}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div>
-                <UserOutlined /> {currentUser?.username || '访客用户'}
-              </div>
-              <Button type="primary" danger onClick={handleLogout} block>
-                <LogoutOutlined /> 切换访客
-              </Button>
-            </Space>
-          </div>
+          {renderMobileUserSection()}
         </Drawer>
       </div>
     </AntHeader>
