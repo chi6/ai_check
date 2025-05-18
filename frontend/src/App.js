@@ -8,6 +8,7 @@ import History from './pages/History';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PaymentPage from './pages/PaymentPage';
+import PaymentStatus from './pages/PaymentStatus';
 import Header from './components/Header';
 import './App.css';
 
@@ -94,6 +95,7 @@ function App() {
                       <Route path="/result/:taskId" element={token ? <Result /> : <Navigate to="/login" />} />
                       <Route path="/history" element={token ? <History /> : <Navigate to="/login" />} />
                       <Route path="/payment" element={token ? <PaymentPage /> : <Navigate to="/login" />} />
+                      <Route path="/payment/status" element={token ? <PaymentStatus /> : <Navigate to="/login" />} />
                       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
                       <Route path="*" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
                     </Routes>

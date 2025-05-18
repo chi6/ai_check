@@ -164,10 +164,20 @@ export const paymentApi = {
     return_url: returnUrl
   }),
   
+  // 创建Stripe Checkout会话
+  createStripeCheckout: (planId, successUrl, cancelUrl) => api.post('/payments/stripe/create-checkout', {
+    plan_id: planId,
+    success_url: successUrl,
+    cancel_url: cancelUrl
+  }),
+  
   // 确认Stripe支付
   confirmStripePayment: (paymentId, paymentIntentId) => api.post(`/payments/stripe/${paymentId}/confirm`, {
     payment_intent_id: paymentIntentId
   }),
+
+  // 获取支付状态
+  getPaymentStatus: (paymentId) => api.get(`/payments/${paymentId}`),
   
   // 取消订阅
   cancelSubscription: (subscriptionId) => api.delete(`/subscriptions/${subscriptionId}`),

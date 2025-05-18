@@ -18,7 +18,7 @@ const PaymentForm = ({ onSuccess }) => {
   const [stripeLink, setStripeLink] = useState('');
   const [error, setError] = useState('');
   const [availablePlans, setAvailablePlans] = useState([]);
-  const [fallbackPlans, setFallbackPlans] = useState([]);
+  const [officialPlans, setOfficialPlans] = useState([]);
 
   // 获取订阅计划
   useEffect(() => {
@@ -32,19 +32,19 @@ const PaymentForm = ({ onSuccess }) => {
           plansData = response.data || [];
           console.log('从API获取的计划:', plansData);
         } catch (apiError) {
-          console.error('获取计划失败，使用备用数据:', apiError);
-          // 使用备用数据
+          console.error('获取计划失败，使用预设数据:', apiError);
+          // 使用预设数据
           plansData = [];
         }
         
         // 设置API获取的计划为可用计划
         setAvailablePlans(plansData);
         
-        // 设置备用计划
-        setFallbackPlans([
+        // 设置正式订阅计划
+        setOfficialPlans([
           {
-            id: 'single_use_fallback',
-            name: '单次使用(备用)',
+            id: 'single_use_official',
+            name: '单次使用',
             description: '充值1美元获取1次检测机会',
             plan_type: 'single_use',
             price: 1.0,
@@ -55,8 +55,8 @@ const PaymentForm = ({ onSuccess }) => {
             usage_credits: 1
           },
           {
-            id: 'ten_use_fallback',
-            name: '十次使用(备用)',
+            id: 'ten_use_official',
+            name: '十次使用',
             description: '充值5美元获取10次检测机会',
             plan_type: 'single_use',
             price: 5.0,
@@ -67,8 +67,8 @@ const PaymentForm = ({ onSuccess }) => {
             usage_credits: 10
           },
           {
-            id: 'hundred_use_fallback',
-            name: '百次使用(备用)',
+            id: 'hundred_use_official',
+            name: '百次使用',
             description: '充值10美元获取100次检测机会',
             plan_type: 'single_use',
             price: 10.0,
@@ -180,7 +180,7 @@ const PaymentForm = ({ onSuccess }) => {
   };
 
   // 提交表单
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedPlan) {
@@ -191,56 +191,65 @@ const PaymentForm = ({ onSuccess }) => {
     // 添加调试日志
     console.log('提交支付表单，选中计划:', selectedPlan);
     
-    // 直接使用硬编码的链接，避免API调用可能的问题
-    let paymentLink = '#';
+    // 设置加载状态
+    setLoading(true);
+    setError('');
     
-    // 根据计划类型和使用次数确定支付链接
-    if (selectedPlan.plan_type === 'single_use') {
-      // 检查使用次数
-      const credits = Number(selectedPlan.usage_credits || 0);
-      const planName = selectedPlan.name || '';
+    try {
+      // 获取当前域名作为回调URL基础
+      const baseUrl = window.location.origin;
       
-      console.log('选中计划名称:', planName, '使用次数:', credits);
+      // 设置成功和取消URL
+      const successUrl = `${baseUrl}/payment/status?success=true&plan_id=${selectedPlan.id}`;
+      const cancelUrl = `${baseUrl}/payment/status?canceled=true`;
       
-      // 百次使用计划 - 10美元
-      if (credits === 100 || planName.includes('100') || planName.includes('百次')) {
-        paymentLink = 'https://buy.stripe.com/4gw8zjdAsdv63VmcMO';
-        console.log('使用百次检测计划支付链接');
+      console.log('发送创建Checkout会话请求，plan_id:', selectedPlan.id);
+      console.log('成功回调URL:', successUrl);
+      console.log('取消回调URL:', cancelUrl);
+      
+      // 通过API创建Checkout会话
+      const result = await paymentApi.createStripeCheckout(
+        selectedPlan.id, 
+        successUrl, 
+        cancelUrl
+      );
+      
+      if (result && result.checkout_url) {
+        console.log('创建Checkout会话成功，重定向到:', result.checkout_url);
+        // 重定向到Checkout页面
+        window.location.href = result.checkout_url;
+      } else {
+        throw new Error('创建Checkout会话失败：没有返回有效URL');
       }
-      // 十次使用计划 - 5美元
-      else if (credits === 10 || planName.includes('10') || planName.includes('十次')) {
-        paymentLink = 'https://buy.stripe.com/eVabLv2VO62EbnO5kk';
-        console.log('使用十次检测计划支付链接');
+    } catch (error) {
+      console.error('创建Checkout会话失败:', error);
+      let errorMsg = '请稍后再试';
+      
+      // 尝试从响应中获取更详细的错误信息
+      if (error.response && error.response.data) {
+        const responseData = error.response.data;
+        if (responseData.detail) {
+          errorMsg = responseData.detail;
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
       }
-      // 单次使用计划 - 1美元
-      else {
-        paymentLink = 'https://buy.stripe.com/bIYcPz53W8aM0JaaEF';
-        console.log('使用单次检测计划支付链接');
-      }
+      
+      setError(`支付初始化失败: ${errorMsg}`);
+      message.error(`支付初始化失败: ${errorMsg}`);
+    } finally {
+      setLoading(false);
     }
-    
-    if (paymentLink === '#') {
-      console.error('无法确定支付链接');
-      setError('无法获取支付链接，请联系客服');
-      return;
-    }
-    
-    // 打开支付链接
-    console.log('打开支付链接:', paymentLink);
-    window.open(paymentLink, '_blank');
-    
-    // 显示成功信息
-    message.success('正在跳转到支付页面，请完成支付');
   };
 
   // 渲染订阅计划卡片
-  const renderPlanCard = (plan, isFallback = false) => {
+  const renderPlanCard = (plan, isOfficial = false) => {
     const isSelected = selectedPlan && selectedPlan.id === plan.id;
     
     return (
       <div 
         key={plan.id}
-        className={`plan-card ${isSelected ? 'selected-plan' : ''} ${isFallback ? 'fallback-plan' : ''}`}
+        className={`plan-card ${isSelected ? 'selected-plan' : ''} ${isOfficial ? 'official-plan' : ''}`}
         onClick={() => handlePlanSelect(plan)}
       >
         <h4>{plan.name}</h4>
@@ -281,8 +290,8 @@ const PaymentForm = ({ onSuccess }) => {
           <pre>{JSON.stringify(availablePlans, null, 2)}</pre>
         </div>
         <div>
-          <h5>备用计划：</h5>
-          <pre>{JSON.stringify(fallbackPlans, null, 2)}</pre>
+          <h5>正式计划：</h5>
+          <pre>{JSON.stringify(officialPlans, null, 2)}</pre>
         </div>
         <div>
           <h5>当前选中计划：</h5>
@@ -322,7 +331,7 @@ const PaymentForm = ({ onSuccess }) => {
       gap: 30px;
     }
     
-    .plans-section h3, .fallback-plans-section h3 {
+    .plans-section h3, .official-plans-section h3 {
       font-size: 18px;
       margin-bottom: 15px;
     }
@@ -352,9 +361,9 @@ const PaymentForm = ({ onSuccess }) => {
       background-color: rgba(24, 144, 255, 0.05);
     }
     
-    .plan-card.fallback-plan {
-      border-style: dashed;
-      opacity: 0.85;
+    .plan-card.official-plan {
+      border-style: solid;
+      opacity: 1;
     }
     
     .plan-card h4 {
@@ -480,21 +489,10 @@ const PaymentForm = ({ onSuccess }) => {
 
       <form onSubmit={handleSubmit} className="payment-form">
         <div className="payment-plans">
-          <div className="plans-section">
-            <h3>可用订阅计划</h3>
-            {plansLoading ? (
-              <div className="loading-plans">正在加载订阅计划...</div>
-            ) : (
-              <div className="plan-cards">
-                {availablePlans.map(plan => renderPlanCard(plan))}
-              </div>
-            )}
-          </div>
-
-          <div className="fallback-plans-section">
-            <h3>备用订阅计划</h3>
+          <div className="official-plans-section">
+            <h3>正式订阅计划</h3>
             <div className="plan-cards">
-              {fallbackPlans.map(plan => renderPlanCard(plan, true))}
+              {officialPlans.map(plan => renderPlanCard(plan, true))}
             </div>
           </div>
         </div>

@@ -17,8 +17,10 @@ from ..services.payment_service import (
     process_alipay_notification,
     create_subscription,
     cancel_subscription,
-    get_subscription_plans
+    get_subscription_plans,
+    process_stripe_webhook
 )
+import stripe
 
 router = APIRouter()
 
@@ -316,4 +318,128 @@ async def create_plan_payment(
         return result
     
     else:
-        raise HTTPException(status_code=400, detail="不支持的支付方式") 
+        raise HTTPException(status_code=400, detail="不支持的支付方式")
+
+# Stripe Webhook处理
+@router.post("/payments/stripe/webhook", status_code=status.HTTP_200_OK)
+async def stripe_webhook_handler(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """
+    处理来自Stripe的webhook通知
+    """
+    # 获取原始请求体
+    payload = await request.body()
+    # 获取Stripe签名标头
+    sig_header = request.headers.get("stripe-signature")
+
+    # 处理webhook并返回结果
+    result = process_stripe_webhook(db, payload, sig_header)
+    
+    # 如果处理失败，返回相应的状态码
+    if "error" in result:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+    
+    return result
+
+@router.post("/payments/stripe/create-checkout", response_model=dict)
+async def create_stripe_checkout_session(
+    plan_id: str = Body(...),
+    success_url: str = Body(...),
+    cancel_url: str = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """创建Stripe Checkout会话"""
+    # 获取计划信息
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
+    
+    try:
+        # 处理硬编码计划ID（从前端传递的官方计划）
+        price = None
+        if not plan:
+            if plan_id == 'single_use_official':
+                # 单次使用 - 1美元 - 直接使用实际价格而不是价格ID
+                price_data = {
+                    'unit_amount': 100,  # 1美元，以美分为单位
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': '单次使用检测额度',
+                        'description': '充值1美元获取1次检测机会',
+                    },
+                }
+            elif plan_id == 'ten_use_official':
+                # 十次使用 - 5美元
+                price_data = {
+                    'unit_amount': 500,  # 5美元，以美分为单位
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': '十次使用检测额度',
+                        'description': '充值5美元获取10次检测机会',
+                    },
+                }
+            elif plan_id == 'hundred_use_official':
+                # 百次使用 - 10美元
+                price_data = {
+                    'unit_amount': 1000,  # 10美元，以美分为单位
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': '百次使用检测额度',
+                        'description': '充值10美元获取100次检测机会',
+                    },
+                }
+            else:
+                raise HTTPException(status_code=404, detail="计划不存在")
+        else:
+            # 使用数据库中的计划价格信息
+            if plan.stripe_price_id:
+                price = plan.stripe_price_id
+            else:
+                # 如果没有价格ID，使用价格数据创建
+                price_data = {
+                    'unit_amount': int(plan.price * 100),  # 转换为美分
+                    'currency': plan.currency.lower(),
+                    'product_data': {
+                        'name': plan.name,
+                        'description': plan.description or f"购买{plan.name}",
+                    },
+                }
+        
+        # 创建Checkout会话
+        line_items = []
+        if price:
+            # 使用价格ID
+            line_items.append({
+                'price': price,
+                'quantity': 1,
+            })
+        else:
+            # 使用价格数据
+            line_items.append({
+                'price_data': price_data,
+                'quantity': 1,
+            })
+            
+        checkout_session = stripe.checkout.Session.create(
+            customer_email=current_user.email,
+            line_items=line_items,
+            metadata={
+                'user_id': current_user.id,
+                'plan_id': plan_id,
+            },
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        
+        return {
+            "checkout_url": checkout_session.url,
+            "session_id": checkout_session.id
+        }
+    except Exception as e:
+        print(f"创建Stripe Checkout会话失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"创建会话失败: {str(e)}") 
