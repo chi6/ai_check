@@ -19,8 +19,8 @@ from ..schemas.database_models import (
 from .usage_service import add_usage_credits
 
 # Stripe配置
-STRIPE_API_KEY = os.getenv("STRIPE_API_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 print(f"STRIPE API KEY 设置: {'*' * 10 + STRIPE_API_KEY[-5:] if STRIPE_API_KEY else '未设置'}")
 
 # 设置Stripe API密钥
@@ -29,18 +29,18 @@ if not STRIPE_API_KEY:
 else:
     stripe.api_key = STRIPE_API_KEY
 
-# 微信支付配置
-WECHAT_PAY_APPID = os.getenv("WECHAT_PAY_APPID", "")
-WECHAT_PAY_MCH_ID = os.getenv("WECHAT_PAY_MCH_ID", "")
-WECHAT_PAY_API_KEY = os.getenv("WECHAT_PAY_API_KEY", "")
-WECHAT_PAY_NOTIFY_URL = os.getenv("WECHAT_PAY_NOTIFY_URL", "")
-
 # 支付宝配置
 ALIPAY_APPID = os.getenv("ALIPAY_APPID", "")
 ALIPAY_PRIVATE_KEY = os.getenv("ALIPAY_PRIVATE_KEY", "")
 ALIPAY_PUBLIC_KEY = os.getenv("ALIPAY_PUBLIC_KEY", "")
 ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "")
 ALIPAY_GATEWAY = "https://openapi.alipay.com/gateway.do"
+
+# 微信支付配置
+WECHAT_PAY_APPID = os.getenv("WECHAT_PAY_APPID", "")
+WECHAT_PAY_MCH_ID = os.getenv("WECHAT_PAY_MCH_ID", "")
+WECHAT_PAY_API_KEY = os.getenv("WECHAT_PAY_API_KEY", "")
+WECHAT_PAY_NOTIFY_URL = os.getenv("WECHAT_PAY_NOTIFY_URL", "")
 
 # Stripe支付处理
 def create_stripe_payment(
