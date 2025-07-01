@@ -7,13 +7,13 @@ import { paymentApi, userApi } from '../api/api';
 const { Content } = Layout;
 const { Title } = Typography;
 
-const PaymentStatus = () => {
+const PaymentStatusPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [paymentDetails, setPaymentDetails] = useState(null);
-  const [statusMessage, setStatusMessage] = useState('');
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const PaymentStatus = () => {
         if (canceled === 'true') {
           console.log('用户取消了支付');
           setPaymentStatus('canceled');
-          setStatusMessage('您已取消支付操作');
+          setMessage('您已取消支付操作');
           setLoading(false);
           return;
         }
@@ -55,10 +55,12 @@ const PaymentStatus = () => {
           if (sessionId) {
             try {
               console.log('正在获取支付会话详情，Session ID:', sessionId);
+              // 这里可以调用后端API获取会话详情
+              // const sessionDetails = await paymentApi.getSessionDetails(sessionId);
               
               // 暂时使用基本的成功状态
               setPaymentStatus('success');
-              setStatusMessage('支付已成功完成！');
+              setMessage('支付已成功完成！');
               
               // 设置基本的支付详情
               if (planId) {
@@ -83,12 +85,12 @@ const PaymentStatus = () => {
             } catch (error) {
               console.error('获取支付详情失败:', error);
               setPaymentStatus('success');
-              setStatusMessage('支付成功，但获取详情失败。请检查您的账户余额。');
+              setMessage('支付成功，但获取详情失败。请检查您的账户余额。');
             }
           } else {
             // 没有session_id，使用基本成功状态
             setPaymentStatus('success');
-            setStatusMessage('支付成功！');
+            setMessage('支付成功！');
             message.success('支付成功！');
           }
           
@@ -101,9 +103,12 @@ const PaymentStatus = () => {
           console.log('检测到PaymentIntent ID，检查支付状态:', paymentIntentId);
           
           try {
+            // 这里可以调用后端API检查支付意图状态
+            // const paymentStatus = await paymentApi.getPaymentIntentStatus(paymentIntentId);
+            
             // 暂时假设支付成功
             setPaymentStatus('success');
-            setStatusMessage('支付处理完成！');
+            setMessage('支付处理完成！');
             setPaymentDetails({
               paymentIntentId: paymentIntentId,
               timestamp: new Date().toISOString()
@@ -114,7 +119,7 @@ const PaymentStatus = () => {
           } catch (error) {
             console.error('检查支付意图状态失败:', error);
             setPaymentStatus('failed');
-            setStatusMessage('支付状态检查失败，请联系客服确认。');
+            setMessage('支付状态检查失败，请联系客服确认。');
             setError('无法确认支付状态');
           }
           
@@ -125,13 +130,13 @@ const PaymentStatus = () => {
         // 如果没有明确的状态参数，显示未知状态
         console.log('没有明确的支付状态参数');
         setPaymentStatus('unknown');
-        setStatusMessage('无法确定支付状态，请联系客服确认。');
+        setMessage('无法确定支付状态，请联系客服确认。');
         setLoading(false);
 
       } catch (error) {
         console.error('检查支付状态时出错:', error);
         setPaymentStatus('failed');
-        setStatusMessage('检查支付状态时出错，请联系客服。');
+        setMessage('检查支付状态时出错，请联系客服。');
         setError(error.message || '未知错误');
         setLoading(false);
       }
@@ -150,48 +155,52 @@ const PaymentStatus = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: '50px', textAlign: 'center' }}>
-        <Card>
-          <Spin size="large" />
-          <div style={{ marginTop: 20 }}>
-            <Title level={4}>正在检查支付状态...</Title>
-            <p>请稍候，我们正在验证您的支付信息。</p>
-          </div>
-        </Card>
-      </div>
+      <Layout style={{ minHeight: '100vh' }}>
+        <Content style={{ padding: '50px', textAlign: 'center' }}>
+          <Card>
+            <Spin size="large" />
+            <div style={{ marginTop: 20 }}>
+              <Title level={4}>正在检查支付状态...</Title>
+              <p>请稍候，我们正在验证您的支付信息。</p>
+            </div>
+          </Card>
+        </Content>
+      </Layout>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <PaymentStatusNotification
-        status={paymentStatus}
-        message={error || statusMessage}
-        paymentDetails={paymentDetails}
-        onRetry={handleRetry}
-        onClose={handleClose}
-      />
-      
-      {/* 调试信息 */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card 
-          title="调试信息" 
-          style={{ marginTop: 20, maxWidth: '600px', margin: '20px auto' }}
-          size="small"
-        >
-          <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
-            URL参数: {JSON.stringify(Object.fromEntries(searchParams), null, 2)}
-          </pre>
-          <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
-            支付状态: {paymentStatus}
-          </pre>
-          <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
-            支付详情: {JSON.stringify(paymentDetails, null, 2)}
-          </pre>
-        </Card>
-      )}
-    </div>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Content style={{ padding: '20px' }}>
+        <PaymentStatusNotification
+          status={paymentStatus}
+          message={error || message}
+          paymentDetails={paymentDetails}
+          onRetry={handleRetry}
+          onClose={handleClose}
+        />
+        
+        {/* 调试信息 */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card 
+            title="调试信息" 
+            style={{ marginTop: 20, maxWidth: '600px', margin: '20px auto' }}
+            size="small"
+          >
+            <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
+              URL参数: {JSON.stringify(Object.fromEntries(searchParams), null, 2)}
+            </pre>
+            <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
+              支付状态: {paymentStatus}
+            </pre>
+            <pre style={{ fontSize: '12px', background: '#f5f5f5', padding: '10px' }}>
+              支付详情: {JSON.stringify(paymentDetails, null, 2)}
+            </pre>
+          </Card>
+        )}
+      </Content>
+    </Layout>
   );
 };
 
-export default PaymentStatus; 
+export default PaymentStatusPage; 

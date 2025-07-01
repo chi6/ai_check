@@ -1,0 +1,194 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "refresh": "Refresh",
+    "search": "Search",
+    "reset": "Reset",
+    "close": "Close",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "payment": {
+    "title": "Payment & Subscription Center",
+    "subtitle": "Choose the plan that suits you and enjoy professional AI content detection services",
+    "userStatus": {
+      "title": "User Status",
+      "currentPlan": "Current Plan",
+      "remainingUsage": "Remaining Usage",
+      "expiryDate": "Expiry Date",
+      "unlimited": "Unlimited Usage",
+      "canUse": "Available",
+      "needTopup": "Need Top-up",
+      "topupNow": "Top-up Now",
+      "freeUser": "Free User",
+      "premiumUser": "Premium User",
+      "limitedUser": "Limited User",
+      "expiredUser": "Expired User"
+    },
+    "plans": {
+      "selectTitle": "Choose Your Subscription Plan",
+      "selectSubtitle": "All plans support secure online payment and take effect immediately",
+      "singleUse": {
+        "name": "Single Use",
+        "description": "Perfect for occasional users",
+        "tag": "Flexible Choice",
+        "features": [
+          "Pay as you go",
+          "No commitment",
+          "Perfect for testing"
+        ]
+      },
+      "tenUse": {
+        "name": "Ten Pack",
+        "description": "Most popular choice",
+        "tag": "Most Popular",
+        "features": [
+          "Great value",
+          "Save 50%",
+          "Bulk usage"
+        ],
+        "popular": "Hot Choice",
+        "discount": "Save 50%"
+      },
+      "hundredUse": {
+        "name": "Hundred Pack",
+        "description": "Preferred by enterprises and heavy users",
+        "tag": "Enterprise Choice",
+        "features": [
+          "Maximum savings",
+          "Save 90%",
+          "Enterprise service"
+        ],
+        "discount": "Save 90%"
+      },
+      "pricePerUnit": "${{price}}/time",
+      "timesDetection": "{{count}} detections"
+    },
+    "selectedPlan": {
+      "title": "Selected: {{planName}}",
+      "subtitle": "${{price}} • {{count}} detection services",
+      "reselect": "Reselect"
+    },
+    "paymentButton": {
+      "payNow": "Pay Now ${{amount}}",
+      "processing": "Processing...",
+      "selectPlan": "Please select a plan"
+    },
+    "security": {
+      "safePayment": "Secure Payment",
+      "safePaymentDesc": "Powered by Stripe with SSL encryption protection",
+      "instantActivation": "Instant Activation",
+      "instantActivationDesc": "Detection service available immediately after payment"
+    },
+    "tabs": {
+      "payment": "Payment/Subscription",
+      "history": "Payment History",
+      "subscription": "My Subscription"
+    },
+    "quickTopup": {
+      "singleUse": "Single Use",
+      "tenUse": "Ten Pack",
+      "hundredUse": "Hundred Pack"
+    },
+    "features": {
+      "title": "Why Choose Us?",
+      "secure": {
+        "title": "Secure & Reliable",
+        "description": "Bank-level encryption to protect your payment information"
+      },
+      "instant": {
+        "title": "Instant Activation",
+        "description": "Takes effect immediately after payment, no waiting required"
+      },
+      "accurate": {
+        "title": "Accurate Detection",
+        "description": "AI-powered high-precision content detection technology"
+      },
+      "discount": {
+        "title": "Great Deals",
+        "description": "Enjoy more discounts with bulk purchases"
+      }
+    },
+    "paymentHelp": {
+      "title": "Payment Help",
+      "step1": {
+        "title": "Choose Plan",
+        "description": "Select the right plan based on usage frequency"
+      },
+      "step2": {
+        "title": "Secure Payment",
+        "description": "Support credit card, WeChat Pay, Alipay"
+      },
+      "step3": {
+        "title": "Instant Effect",
+        "description": "Available immediately after payment"
+      },
+      "discountTitle": "Discount Information",
+      "discountItems": [
+        "Single purchase: Perfect for occasional use",
+        "Ten pack: Save 50% cost",
+        "Hundred pack: Save 90% cost"
+      ],
+      "securityTitle": "Security Guarantee",
+      "securityDesc": "All payment information is transmitted with SSL encryption, your information security is guaranteed."
+    },
+    "history": {
+      "title": "Payment History",
+      "columns": {
+        "paymentTime": "Payment Time",
+        "paymentMethod": "Payment Method",
+        "amount": "Amount",
+        "status": "Status",
+        "orderId": "Order ID"
+      },
+      "paymentMethods": {
+        "stripe": "Credit Card",
+        "wechat": "WeChat Pay",
+        "alipay": "Alipay",
+        "unknown": "Unknown"
+      },
+      "statuses": {
+        "completed": "Payment Successful",
+        "succeeded": "Payment Successful",
+        "pending": "Processing",
+        "requires_action": "Processing",
+        "failed": "Payment Failed",
+        "canceled": "Payment Failed",
+        "unknown": "Unknown"
+      },
+      "noData": "No payment records"
+    },
+    "errors": {
+      "paymentError": "Payment Error",
+      "selectPlanRequired": "Please select a subscription plan",
+      "paymentInitFailed": "Payment initialization failed",
+      "cannotGetUsage": "Unable to get usage information"
+    },
+    "contact": "If you have any payment issues, please contact our customer service team"
+  },
+  "navigation": {
+    "home": "Home",
+    "upload": "Upload Detection",
+    "history": "History",
+    "payment": "Payment",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "menu": "Menu"
+  },
+  "language": {
+    "switch": "Switch Language",
+    "chinese": "中文",
+    "english": "English"
+  }
+} 

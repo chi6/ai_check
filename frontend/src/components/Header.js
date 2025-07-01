@@ -8,13 +8,17 @@ import {
   UserOutlined, 
   LogoutOutlined,
   MenuOutlined,
-  LoginOutlined
+  LoginOutlined,
+  CreditCardOutlined
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitch from './LanguageSwitch';
 import '../styles/Header.css';
 
 const { Header: AntHeader } = Layout;
 
 const AppHeader = ({ token, currentUser, onLogout }) => {
+  const { t } = useTranslation();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const location = useLocation();
@@ -34,7 +38,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
 
   const handleLogout = () => {
     onLogout();
-    message.success('退出登录成功');
+    message.success(t('navigation.logout'));
     navigate('/login');
     setDrawerVisible(false);
   };
@@ -57,7 +61,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
       onClick: handleLogout,
       label: (
         <>
-          <LogoutOutlined /> 退出登录
+          <LogoutOutlined /> {t('navigation.logout')}
         </>
       )
     }
@@ -68,6 +72,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
     if (path.startsWith('/dashboard')) return ['dashboard'];
     if (path.startsWith('/upload')) return ['upload'];
     if (path.startsWith('/history')) return ['history'];
+    if (path.startsWith('/payment')) return ['payment'];
     return [];
   };
 
@@ -75,17 +80,22 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
     {
       key: "dashboard",
       icon: <HomeOutlined />,
-      label: <Link to="/dashboard">首页</Link>
+      label: <Link to="/dashboard">{t('navigation.home')}</Link>
     },
     {
       key: "upload",
       icon: <UploadOutlined />,
-      label: <Link to="/upload">上传检测</Link>
+      label: <Link to="/upload">{t('navigation.upload')}</Link>
     },
     {
       key: "history",
       icon: <HistoryOutlined />,
-      label: <Link to="/history">历史记录</Link>
+      label: <Link to="/history">{t('navigation.history')}</Link>
+    },
+    {
+      key: "payment",
+      icon: <CreditCardOutlined />,
+      label: <Link to="/payment">{t('navigation.payment')}</Link>
     }
   ];
 
@@ -98,20 +108,24 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
   const renderUserSection = () => {
     if (token && currentUser) {
       return (
-        <Dropdown menu={{ items: userMenu }} placement="bottomRight">
-          <Button type="text" style={{ color: 'white' }}>
-            <UserOutlined /> {currentUser.username}
-          </Button>
-        </Dropdown>
+        <Space>
+          <LanguageSwitch size="small" type="text" />
+          <Dropdown menu={{ items: userMenu }} placement="bottomRight">
+            <Button type="text" style={{ color: 'white' }}>
+              <UserOutlined /> {currentUser.username}
+            </Button>
+          </Dropdown>
+        </Space>
       );
     } else {
       return (
         <Space>
+          <LanguageSwitch size="small" type="text" />
           <Button type="primary" onClick={() => navigate('/login')}>
-            <LoginOutlined /> 登录
+            <LoginOutlined /> {t('navigation.login')}
           </Button>
           <Button onClick={() => navigate('/register')}>
-            注册
+            {t('navigation.register')}
           </Button>
         </Space>
       );
@@ -126,8 +140,9 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
             <div>
               <UserOutlined /> {currentUser.username}
             </div>
+            <LanguageSwitch size="small" style={{ width: '100%' }} />
             <Button type="primary" danger onClick={handleLogout} block>
-              <LogoutOutlined /> 退出登录
+              <LogoutOutlined /> {t('navigation.logout')}
             </Button>
           </Space>
         </div>
@@ -136,11 +151,12 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
       return (
         <div style={{ padding: '16px 0', borderTop: '1px solid #f0f0f0', marginTop: '16px' }}>
           <Space direction="vertical" style={{ width: '100%' }}>
+            <LanguageSwitch size="small" style={{ width: '100%' }} />
             <Button type="primary" onClick={() => { navigate('/login'); setDrawerVisible(false); }} block>
-              <LoginOutlined /> 登录
+              <LoginOutlined /> {t('navigation.login')}
             </Button>
             <Button onClick={() => { navigate('/register'); setDrawerVisible(false); }} block>
-              注册
+              {t('navigation.register')}
             </Button>
           </Space>
         </div>
@@ -180,7 +196,7 @@ const AppHeader = ({ token, currentUser, onLogout }) => {
         )}
 
         <Drawer
-          title="菜单"
+          title={t('navigation.menu')}
           placement="left"
           closable={true}
           onClose={() => setDrawerVisible(false)}

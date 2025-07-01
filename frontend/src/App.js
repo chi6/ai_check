@@ -11,6 +11,7 @@ import PaymentPage from './pages/PaymentPage';
 import PaymentStatus from './pages/PaymentStatus';
 import Header from './components/Header';
 import './App.css';
+import './i18n';
 
 const { Content, Footer } = Layout;
 

@@ -1,0 +1,239 @@
+/* 支付页面样式 */
+.payment-page-container {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+/* 用户状态卡片 */
+.user-status-card {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
+  border: none !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.user-status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  pointer-events: none;
+}
+
+.user-status-card .ant-card-body {
+  padding: 32px !important;
+}
+
+/* 快速充值卡片 */
+.quick-topup-card {
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+  border: 2px solid transparent !important;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-topup-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1) !important;
+  border-color: #1890ff !important;
+}
+
+.quick-topup-card .ant-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px !important;
+}
+
+/* 功能特色卡片 */
+.features-card .ant-col {
+  text-align: center;
+  padding: 16px;
+}
+
+.features-card .ant-avatar {
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+/* 标签页样式 */
+.ant-tabs-card > .ant-tabs-content {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  padding: 24px;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+  border-radius: 8px 8px 0 0 !important;
+  background: linear-gradient(135deg, #f0f2f5 0%, #e6f7ff 100%) !important;
+  border: none !important;
+  margin-right: 4px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
+  background: white !important;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.1) !important;
+}
+
+.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab:hover {
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%) !important;
+}
+
+/* 支付帮助卡片样式 */
+.ant-timeline-item-content h5 {
+  margin-bottom: 8px !important;
+  color: #1890ff;
+}
+
+.ant-timeline-item-content {
+  padding-left: 16px;
+}
+
+/* 渐变按钮样式 */
+.gradient-button {
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%) !important;
+  border: none !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+}
+
+.gradient-button:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #9254de 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* 统计数字样式 */
+.ant-statistic-content-value {
+  font-weight: 600 !important;
+}
+
+.ant-statistic-title {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+/* 进度条样式 */
+.ant-progress-line {
+  margin-top: 8px;
+}
+
+.ant-progress-bg {
+  border-radius: 4px !important;
+}
+
+/* 标签样式 */
+.ant-tag {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  border: none !important;
+}
+
+/* 卡片阴影效果 */
+.ant-card {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .user-status-card .ant-card-body {
+    padding: 20px !important;
+  }
+  
+  .quick-topup-card {
+    height: 160px;
+    margin-bottom: 16px;
+  }
+  
+  .payment-page-container {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .user-status-card .ant-row {
+    text-align: center;
+  }
+  
+  .user-status-card .ant-col {
+    margin-bottom: 16px;
+  }
+  
+  .quick-topup-card {
+    height: 140px;
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.payment-page-container > div > * {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.payment-page-container > div > *:nth-child(1) { animation-delay: 0.1s; }
+.payment-page-container > div > *:nth-child(2) { animation-delay: 0.2s; }
+.payment-page-container > div > *:nth-child(3) { animation-delay: 0.3s; }
+.payment-page-container > div > *:nth-child(4) { animation-delay: 0.4s; }
+.payment-page-container > div > *:nth-child(5) { animation-delay: 0.5s; }
+
+/* 特殊效果 */
+.ant-avatar {
+  border: 2px solid rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+}
+
+.ant-avatar:hover {
+  transform: scale(1.1);
+}
+
+/* 时间线样式美化 */
+.ant-timeline-item-tail {
+  border-left: 2px solid #f0f0f0;
+}
+
+.ant-timeline-item-head {
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 背景装饰 */
+.payment-page-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(24, 144, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(114, 46, 209, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+} 

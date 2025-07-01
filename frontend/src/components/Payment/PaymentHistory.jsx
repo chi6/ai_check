@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, Spin, Empty, Typography, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { paymentApi } from '../../api/api';
 
 const { Title } = Typography;
 
 const PaymentHistory = () => {
+  const { t } = useTranslation();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,32 +64,28 @@ const PaymentHistory = () => {
 
   // 格式化支付方式
   const formatPaymentMethod = (method) => {
-    switch (method) {
-      case 'stripe':
-        return '信用卡';
-      case 'wechat':
-        return '微信支付';
-      case 'alipay':
-        return '支付宝';
-      default:
-        return method || '未知';
-    }
+    const methods = {
+      stripe: t('payment.history.paymentMethods.stripe'),
+      wechat: t('payment.history.paymentMethods.wechat'),
+      alipay: t('payment.history.paymentMethods.alipay')
+    };
+    return methods[method] || t('payment.history.paymentMethods.unknown');
   };
 
   // 格式化状态
   const renderStatus = (status) => {
     let color = 'default';
-    let text = '未知';
+    let text = t('payment.history.statuses.unknown');
     
     if (status === 'completed' || status === 'succeeded') {
       color = 'success';
-      text = '支付成功';
+      text = t('payment.history.statuses.completed');
     } else if (status === 'pending' || status === 'requires_action') {
       color = 'processing';
-      text = '处理中';
+      text = t('payment.history.statuses.pending');
     } else if (status === 'failed' || status === 'canceled') {
       color = 'error';
-      text = '支付失败';
+      text = t('payment.history.statuses.failed');
     }
     
     return <Tag color={color}>{text}</Tag>;
@@ -116,7 +114,7 @@ const PaymentHistory = () => {
   // 表格列配置
   const columns = [
     {
-      title: '支付时间',
+      title: t('payment.history.columns.paymentTime'),
       dataIndex: 'created_at',
       key: 'created_at',
       render: text => formatDate(text),
@@ -124,13 +122,13 @@ const PaymentHistory = () => {
       defaultSortOrder: 'descend'
     },
     {
-      title: '支付方式',
+      title: t('payment.history.columns.paymentMethod'),
       dataIndex: 'payment_method',
       key: 'payment_method',
       render: text => formatPaymentMethod(text)
     },
     {
-      title: '金额',
+      title: t('payment.history.columns.amount'),
       dataIndex: 'amount',
       key: 'amount',
       render: (text, record) => (
@@ -141,13 +139,13 @@ const PaymentHistory = () => {
       )
     },
     {
-      title: '状态',
+      title: t('payment.history.columns.status'),
       dataIndex: 'status',
       key: 'status',
       render: status => renderStatus(status)
     },
     {
-      title: '订单号',
+      title: t('payment.history.columns.orderId'),
       key: 'payment_id',
       render: (_, record) => {
         if (record.stripe_payment_id) {
@@ -166,13 +164,13 @@ const PaymentHistory = () => {
   return (
     <div className="payment-history">
       <div className="payment-history-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <Title level={4}>支付历史记录</Title>
+        <Title level={4}>{t('payment.history.title')}</Title>
         <Button 
           icon={<ReloadOutlined />} 
           onClick={fetchPaymentHistory}
           loading={loading}
         >
-          刷新
+          {t('common.refresh')}
         </Button>
       </div>
 
@@ -185,7 +183,7 @@ const PaymentHistory = () => {
             pagination={{ pageSize: 10 }}
           />
         ) : (
-          <Empty description="暂无支付记录" />
+          <Empty description={t('payment.history.noData')} />
         )}
       </Spin>
     </div>

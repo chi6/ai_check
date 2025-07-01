@@ -1,0 +1,194 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "submit": "提交",
+    "cancel": "取消",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "refresh": "刷新",
+    "search": "搜索",
+    "reset": "重置",
+    "close": "关闭",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息"
+  },
+  "payment": {
+    "title": "充值与订阅中心",
+    "subtitle": "选择适合您的套餐，享受专业的AI内容检测服务",
+    "userStatus": {
+      "title": "用户状态",
+      "currentPlan": "当前计划",
+      "remainingUsage": "剩余次数",
+      "expiryDate": "到期时间",
+      "unlimited": "无限使用权限",
+      "canUse": "可以使用",
+      "needTopup": "需要充值",
+      "topupNow": "立即充值",
+      "freeUser": "免费用户",
+      "premiumUser": "高级用户",
+      "limitedUser": "受限用户",
+      "expiredUser": "已过期用户"
+    },
+    "plans": {
+      "selectTitle": "选择您的订阅计划",
+      "selectSubtitle": "所有计划均支持安全的在线支付，立即生效",
+      "singleUse": {
+        "name": "单次使用",
+        "description": "适合偶尔使用的用户",
+        "tag": "灵活选择",
+        "features": [
+          "即付即用",
+          "无需承诺", 
+          "适合测试"
+        ]
+      },
+      "tenUse": {
+        "name": "十次套餐",
+        "description": "最受欢迎的选择",
+        "tag": "最受欢迎",
+        "features": [
+          "超值优惠",
+          "节省50%",
+          "批量使用"
+        ],
+        "popular": "热门选择",
+        "discount": "节省50%"
+      },
+      "hundredUse": {
+        "name": "百次套餐", 
+        "description": "企业和重度用户首选",
+        "tag": "企业首选",
+        "features": [
+          "最大优惠",
+          "节省90%",
+          "企业级服务"
+        ],
+        "discount": "节省90%"
+      },
+      "pricePerUnit": "{{price}}/次",
+      "timesDetection": "{{count}} 次检测"
+    },
+    "selectedPlan": {
+      "title": "已选择: {{planName}}",
+      "subtitle": "${{price}} • {{count}} 次检测服务",
+      "reselect": "重新选择"
+    },
+    "paymentButton": {
+      "payNow": "立即支付 ${{amount}}",
+      "processing": "正在处理...",
+      "selectPlan": "请选择计划"
+    },
+    "security": {
+      "safePayment": "安全支付",
+      "safePaymentDesc": "由Stripe提供支付服务，SSL加密保护",
+      "instantActivation": "即时生效", 
+      "instantActivationDesc": "支付完成后立即可使用检测服务"
+    },
+    "tabs": {
+      "payment": "充值/订阅",
+      "history": "支付记录",
+      "subscription": "我的订阅"
+    },
+    "quickTopup": {
+      "singleUse": "单次使用",
+      "tenUse": "十次套餐",
+      "hundredUse": "百次套餐"
+    },
+    "features": {
+      "title": "为什么选择我们？",
+      "secure": {
+        "title": "安全可靠",
+        "description": "银行级别加密，保护您的支付信息"
+      },
+      "instant": {
+        "title": "即时到账",
+        "description": "支付完成后立即生效，无需等待"
+      },
+      "accurate": {
+        "title": "精准检测",
+        "description": "AI驱动的高精度内容检测技术"
+      },
+      "discount": {
+        "title": "优惠套餐",
+        "description": "批量购买享受更多优惠折扣"
+      }
+    },
+    "paymentHelp": {
+      "title": "支付帮助",
+      "step1": {
+        "title": "选择套餐",
+        "description": "根据使用频率选择合适的套餐"
+      },
+      "step2": {
+        "title": "安全支付",
+        "description": "支持信用卡、微信、支付宝"
+      },
+      "step3": {
+        "title": "即时生效",
+        "description": "支付完成后立即可用"
+      },
+      "discountTitle": "优惠说明",
+      "discountItems": [
+        "单次购买：适合偶尔使用",
+        "十次套餐：节省50%费用",
+        "百次套餐：节省90%费用"
+      ],
+      "securityTitle": "安全保障",
+      "securityDesc": "所有支付信息均采用SSL加密传输，您的信息安全有保障。"
+    },
+    "history": {
+      "title": "支付历史记录",
+      "columns": {
+        "paymentTime": "支付时间",
+        "paymentMethod": "支付方式",
+        "amount": "金额",
+        "status": "状态",
+        "orderId": "订单号"
+      },
+      "paymentMethods": {
+        "stripe": "信用卡",
+        "wechat": "微信支付",
+        "alipay": "支付宝",
+        "unknown": "未知"
+      },
+      "statuses": {
+        "completed": "支付成功",
+        "succeeded": "支付成功",
+        "pending": "处理中",
+        "requires_action": "处理中",
+        "failed": "支付失败",
+        "canceled": "支付失败",
+        "unknown": "未知"
+      },
+      "noData": "暂无支付记录"
+    },
+    "errors": {
+      "paymentError": "支付错误",
+      "selectPlanRequired": "请选择一个订阅计划",
+      "paymentInitFailed": "支付初始化失败",
+      "cannotGetUsage": "无法获取使用情况"
+    },
+    "contact": "如有任何支付问题，请联系我们的客服团队"
+  },
+  "navigation": {
+    "home": "首页",
+    "upload": "上传检测",
+    "history": "历史记录",
+    "payment": "充值订阅",
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出登录",
+    "menu": "菜单"
+  },
+  "language": {
+    "switch": "切换语言",
+    "chinese": "中文",
+    "english": "English"
+  }
+} 
