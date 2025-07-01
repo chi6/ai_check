@@ -21,13 +21,22 @@ from .usage_service import add_usage_credits
 # Stripe配置
 STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# 添加日志配置
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 print(f"STRIPE API KEY 设置: {'*' * 10 + STRIPE_API_KEY[-5:] if STRIPE_API_KEY else '未设置'}")
+print(f"STRIPE WEBHOOK SECRET 设置: {'*' * 10 + STRIPE_WEBHOOK_SECRET[-5:] if STRIPE_WEBHOOK_SECRET else '未设置'}")
 
 # 设置Stripe API密钥
 if not STRIPE_API_KEY:
     print("警告: STRIPE_API_KEY未设置，Stripe支付功能将不可用")
+    logger.warning("STRIPE_API_KEY未设置，Stripe支付功能将不可用")
 else:
     stripe.api_key = STRIPE_API_KEY
+    logger.info("Stripe API密钥配置成功")
 
 # 支付宝配置
 ALIPAY_APPID = os.getenv("ALIPAY_APPID", "")
@@ -593,6 +602,8 @@ def cancel_subscription(db: Session, user_id: str, subscription_id: str):
 
 def process_stripe_webhook(db: Session, payload: bytes, sig_header: str) -> Dict[str, Any]:
     """处理来自Stripe的webhook通知"""
+    logger.info("收到Stripe webhook请求")
+    
     try:
         # 验证Stripe签名
         event = stripe.Webhook.construct_event(
@@ -602,30 +613,39 @@ def process_stripe_webhook(db: Session, payload: bytes, sig_header: str) -> Dict
         # 根据事件类型处理不同的webhook通知
         event_type = event['type']
         data = event['data']['object']
+        event_id = event.get('id', 'unknown')
         
-        print(f"处理Stripe webhook事件: {event_type}")
+        logger.info(f"处理Stripe webhook事件: {event_type}, Event ID: {event_id}")
+        print(f"处理Stripe webhook事件: {event_type}, Event ID: {event_id}")
         
         if event_type == 'payment_intent.succeeded':
             # 支付成功
+            logger.info(f"处理支付成功事件, PaymentIntent ID: {data.get('id')}")
             return handle_payment_intent_succeeded(db, data)
         
         elif event_type == 'payment_intent.payment_failed':
             # 支付失败
+            logger.warning(f"处理支付失败事件, PaymentIntent ID: {data.get('id')}")
             return handle_payment_intent_failed(db, data)
         
         elif event_type == 'checkout.session.completed':
             # Checkout会话完成
+            logger.info(f"处理Checkout会话完成事件, Session ID: {data.get('id')}")
             return handle_checkout_session_completed(db, data)
             
         elif event_type == 'invoice.paid':
             # 发票支付成功（订阅续费）
+            logger.info(f"处理发票支付成功事件, Invoice ID: {data.get('id')}")
             return handle_invoice_paid(db, data)
             
         elif event_type == 'customer.subscription.deleted':
             # 订阅被取消
+            logger.info(f"处理订阅取消事件, Subscription ID: {data.get('id')}")
             return handle_subscription_deleted(db, data)
             
         # 其他事件类型...可以根据需要添加
+        else:
+            logger.info(f"收到未处理的webhook事件类型: {event_type}")
         
         # 对于未处理的事件类型，返回成功但不做处理
         return {
@@ -633,15 +653,19 @@ def process_stripe_webhook(db: Session, payload: bytes, sig_header: str) -> Dict
             "message": f"收到未处理的webhook事件: {event_type}"
         }
         
-    except stripe.error.SignatureVerificationError:
+    except stripe.error.SignatureVerificationError as e:
         # 签名验证失败
-        print("Stripe webhook签名验证失败")
+        error_msg = f"Stripe webhook签名验证失败: {str(e)}"
+        logger.error(error_msg)
+        print(error_msg)
         return {
             "error": "签名验证失败"
         }
     except Exception as e:
         # 其他异常
-        print(f"处理Stripe webhook时出错: {str(e)}")
+        error_msg = f"处理Stripe webhook时出错: {str(e)}"
+        logger.error(error_msg)
+        print(error_msg)
         return {
             "error": str(e)
         }
@@ -649,24 +673,42 @@ def process_stripe_webhook(db: Session, payload: bytes, sig_header: str) -> Dict
 def handle_payment_intent_succeeded(db: Session, data: Dict[str, Any]) -> Dict[str, Any]:
     """处理支付成功事件"""
     payment_intent_id = data.get('id')
+    amount = data.get('amount', 0) / 100  # Stripe金额单位为分
+    currency = data.get('currency', 'usd')
+    
+    logger.info(f"开始处理支付成功事件 - PaymentIntent ID: {payment_intent_id}, 金额: {amount} {currency}")
     
     # 查找对应的支付记录
     payment = db.query(Payment).filter(Payment.stripe_payment_id == payment_intent_id).first()
     
     if not payment:
-        print(f"未找到对应的支付记录: {payment_intent_id}")
+        logger.warning(f"数据库中未找到支付记录: {payment_intent_id}，这可能是通过Checkout创建的支付")
+        # 对于通过Checkout创建的支付，我们等待checkout.session.completed事件来处理
+        # 这里只记录日志，不返回错误
         return {
-            "status": "error",
-            "message": f"未找到对应的支付记录: {payment_intent_id}"
+            "status": "success", 
+            "message": "支付成功，等待Checkout会话完成事件处理"
         }
+    
+    logger.info(f"找到支付记录 - Payment ID: {payment.id}, User ID: {payment.user_id}, 原状态: {payment.status}")
     
     # 更新支付状态为完成
     if payment.status != PAYMENT_STATUS_COMPLETED:
+        old_status = payment.status
         payment.status = PAYMENT_STATUS_COMPLETED
+        payment.updated_at = datetime.now()
         db.commit()
         
+        logger.info(f"支付状态已更新 - Payment ID: {payment.id}, 状态变更: {old_status} -> {PAYMENT_STATUS_COMPLETED}")
+        
         # 处理支付成功后的逻辑（例如增加用户使用额度）
-        process_successful_payment(db, payment)
+        try:
+            process_successful_payment(db, payment)
+            logger.info(f"支付成功后处理完成 - Payment ID: {payment.id}")
+        except Exception as e:
+            logger.error(f"处理支付成功后逻辑时出错 - Payment ID: {payment.id}, 错误: {str(e)}")
+    else:
+        logger.info(f"支付记录已经是完成状态 - Payment ID: {payment.id}")
     
     return {
         "status": "success",
@@ -677,19 +719,40 @@ def handle_payment_intent_succeeded(db: Session, data: Dict[str, Any]) -> Dict[s
 def handle_payment_intent_failed(db: Session, data: Dict[str, Any]) -> Dict[str, Any]:
     """处理支付失败事件"""
     payment_intent_id = data.get('id')
+    amount = data.get('amount', 0) / 100  # Stripe金额单位为分
+    currency = data.get('currency', 'usd')
+    last_payment_error = data.get('last_payment_error', {})
+    failure_code = last_payment_error.get('code', 'unknown')
+    failure_message = last_payment_error.get('message', 'Unknown error')
+    
+    logger.warning(f"开始处理支付失败事件 - PaymentIntent ID: {payment_intent_id}, 金额: {amount} {currency}")
+    logger.warning(f"失败原因 - Code: {failure_code}, Message: {failure_message}")
     
     # 查找对应的支付记录
     payment = db.query(Payment).filter(Payment.stripe_payment_id == payment_intent_id).first()
     
     if not payment:
+        error_msg = f"未找到对应的支付记录: {payment_intent_id}"
+        logger.error(error_msg)
+        print(error_msg)
         return {
             "status": "error",
-            "message": f"未找到对应的支付记录: {payment_intent_id}"
+            "message": error_msg
         }
     
+    logger.info(f"找到支付记录 - Payment ID: {payment.id}, User ID: {payment.user_id}, 原状态: {payment.status}")
+    
     # 更新支付状态为失败
+    old_status = payment.status
     payment.status = PAYMENT_STATUS_FAILED
+    payment.updated_at = datetime.now()
+    # 记录失败原因
+    if hasattr(payment, 'failure_reason'):
+        payment.failure_reason = f"{failure_code}: {failure_message}"
     db.commit()
+    
+    logger.warning(f"支付状态已更新为失败 - Payment ID: {payment.id}, 状态变更: {old_status} -> {PAYMENT_STATUS_FAILED}")
+    logger.warning(f"失败详情 - User ID: {payment.user_id}, Amount: {payment.amount}, Reason: {failure_code}")
     
     return {
         "status": "success",
@@ -702,14 +765,20 @@ def handle_checkout_session_completed(db: Session, data: Dict[str, Any]) -> Dict
     session_id = data.get('id')
     customer_id = data.get('customer')
     payment_intent_id = data.get('payment_intent')
+    customer_email = data.get('customer_details', {}).get('email')
+    
+    logger.info(f"处理Checkout会话完成 - Session ID: {session_id}")
+    logger.info(f"Customer ID: {customer_id}, Email: {customer_email}, PaymentIntent: {payment_intent_id}")
     
     # 如果有支付意图ID，尝试查找对应的支付记录
     if payment_intent_id:
         payment = db.query(Payment).filter(Payment.stripe_payment_id == payment_intent_id).first()
         
         if payment:
+            logger.info(f"找到现有支付记录 - Payment ID: {payment.id}")
             # 更新支付状态
             payment.status = PAYMENT_STATUS_COMPLETED
+            payment.updated_at = datetime.now()
             db.commit()
             
             # 处理支付成功后的逻辑
@@ -724,67 +793,133 @@ def handle_checkout_session_completed(db: Session, data: Dict[str, Any]) -> Dict
     # 如果没有找到现有支付记录，可能是通过Stripe Checkout创建的新支付
     # 获取会话详情，查看购买的商品
     try:
+        logger.info(f"获取Checkout会话详情 - Session ID: {session_id}")
         session = stripe.checkout.Session.retrieve(
             session_id,
             expand=['line_items']
         )
         
+        logger.info(f"会话详情: {session}")
+        
         # 查找客户对应的用户
-        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+        user = None
+        
+        # 首先尝试通过元数据找到用户
+        metadata = session.get('metadata', {})
+        if 'user_id' in metadata:
+            user_id = metadata['user_id']
+            user = db.query(User).filter(User.id == user_id).first()
+            logger.info(f"通过元数据找到用户 - User ID: {user_id}")
+        
+        # 如果通过元数据没找到，尝试通过customer_id查找
+        if not user and customer_id:
+            user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+            logger.info(f"通过Customer ID查找用户: {customer_id}")
+        
+        # 如果还没找到，尝试通过邮箱查找
+        if not user and customer_email:
+            user = db.query(User).filter(User.email == customer_email).first()
+            logger.info(f"通过邮箱查找用户: {customer_email}")
         
         if not user:
-            # 尝试通过元数据找到用户
-            if 'metadata' in data and 'user_id' in data['metadata']:
-                user_id = data['metadata']['user_id']
-                user = db.query(User).filter(User.id == user_id).first()
-            
-            if not user:
-                return {
-                    "status": "error",
-                    "message": f"无法找到对应的用户: {customer_id}"
-                }
+            error_msg = f"无法找到对应的用户 - Customer ID: {customer_id}, Email: {customer_email}"
+            logger.error(error_msg)
+            return {
+                "status": "error",
+                "message": error_msg
+            }
+        
+        logger.info(f"找到用户 - User ID: {user.id}, Email: {user.email}")
         
         # 处理购买的商品
-        if session.get('line_items', {}).get('data'):
-            for item in session['line_items']['data']:
-                price_id = item.get('price', {}).get('id')
-                quantity = item.get('quantity', 1)
-                
-                # 查找对应的订阅计划
-                plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.stripe_price_id == price_id).first()
-                
-                if plan:
-                    # 创建新的支付记录
-                    payment = Payment(
-                        user_id=user.id,
-                        amount=plan.price,
-                        currency=plan.currency,
-                        status=PAYMENT_STATUS_COMPLETED,
-                        stripe_payment_id=payment_intent_id,
-                        plan_id=plan.id
-                    )
-                    
-                    db.add(payment)
-                    db.commit()
-                    db.refresh(payment)
-                    
-                    # 处理支付成功后的逻辑
-                    process_successful_payment(db, payment)
-                    
-                    return {
-                        "status": "success",
-                        "message": "新购买已处理",
-                        "payment_id": payment.id
-                    }
+        line_items = session.get('line_items', {}).get('data', [])
+        logger.info(f"处理 {len(line_items)} 个商品")
         
+        if line_items:
+            for item in line_items:
+                price_data = item.get('price', {})
+                price_id = price_data.get('id')
+                unit_amount = price_data.get('unit_amount', 0) / 100  # 转换为美元
+                currency = price_data.get('currency', 'usd')
+                quantity = item.get('quantity', 1)
+                product_name = price_data.get('product', {}).get('name', 'Unknown Product') if isinstance(price_data.get('product'), dict) else 'Unknown Product'
+                
+                logger.info(f"处理商品 - Name: {product_name}, Amount: {unit_amount} {currency}, Quantity: {quantity}")
+                
+                # 根据金额和元数据推断计划类型和使用次数
+                plan_id = metadata.get('plan_id')
+                usage_credits = 1  # 默认值
+                
+                # 根据元数据中的计划ID确定使用次数
+                if plan_id:
+                    if 'single_use_official' in plan_id:
+                        usage_credits = 1
+                    elif 'ten_use_official' in plan_id:
+                        usage_credits = 10
+                    elif 'hundred_use_official' in plan_id:
+                        usage_credits = 100
+                    else:
+                        # 如果元数据中没有明确的计划，根据金额推断
+                        if unit_amount == 1.0:
+                            usage_credits = 1
+                        elif unit_amount == 5.0:
+                            usage_credits = 10
+                        elif unit_amount == 10.0:
+                            usage_credits = 100
+                else:
+                    # 如果没有元数据，完全根据金额推断
+                    if unit_amount == 1.0:
+                        usage_credits = 1
+                    elif unit_amount == 5.0:
+                        usage_credits = 10
+                    elif unit_amount == 10.0:
+                        usage_credits = 100
+                
+                logger.info(f"确定使用次数: {usage_credits}")
+                
+                # 创建新的支付记录
+                import uuid
+                payment = Payment(
+                    user_id=user.id,
+                    amount=unit_amount,
+                    currency=currency.upper(),
+                    status=PAYMENT_STATUS_COMPLETED,
+                    stripe_payment_id=payment_intent_id,
+                    plan_id=None,  # 暂时不关联具体的订阅计划
+                    created_at=datetime.now()
+                )
+                
+                db.add(payment)
+                db.commit()
+                db.refresh(payment)
+                
+                logger.info(f"创建支付记录 - Payment ID: {payment.id}")
+                
+                # 直接添加使用次数
+                try:
+                    add_usage_credits(db, user.id, usage_credits)
+                    logger.info(f"成功添加使用次数 - User ID: {user.id}, Credits: {usage_credits}")
+                except Exception as e:
+                    logger.error(f"添加使用次数失败 - User ID: {user.id}, Error: {str(e)}")
+                
+                return {
+                    "status": "success",
+                    "message": f"新购买已处理，添加了 {usage_credits} 次使用机会",
+                    "payment_id": payment.id,
+                    "usage_credits": usage_credits
+                }
+        
+        logger.warning("Checkout会话中没有找到商品")
         return {
             "status": "success",
             "message": "Checkout会话已处理，但未找到对应的商品"
         }
     except Exception as e:
+        error_msg = f"处理Checkout会话时出错: {str(e)}"
+        logger.error(error_msg)
         return {
             "status": "error",
-            "message": f"处理Checkout会话时出错: {str(e)}"
+            "message": error_msg
         }
 
 def handle_invoice_paid(db: Session, data: Dict[str, Any]) -> Dict[str, Any]:
