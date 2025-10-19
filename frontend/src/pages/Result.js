@@ -18,7 +18,7 @@ import '../styles/Result.css';
 
 const { Title, Paragraph } = Typography;
 
-const ResultPage = () => {
+const ResultPage = ({ refreshQuota }) => {
   const { taskId } = useParams();
   const navigate = useNavigate();
 
@@ -197,6 +197,10 @@ const ResultPage = () => {
             
             if (updatedResponse.status !== 'processing') {
               clearInterval(intervalId);
+              // 如果任务完成了，刷新配额
+              if (updatedResponse.status === 'completed' && refreshQuota) {
+                refreshQuota();
+              }
             }
           } catch (error) {
             console.error('获取检测状态失败:', error);
@@ -208,9 +212,13 @@ const ResultPage = () => {
         return () => clearInterval(intervalId);
       }
       
-      // 如果状态为已完成，获取详细报告
+      // 如果状态为已完成，获取详细报告并刷新配额
       if (response.status === 'completed') {
         fetchDetailedReport();
+        // 刷新配额显示（确保显示最新的剩余次数）
+        if (refreshQuota) {
+          refreshQuota();
+        }
       }
     } catch (error) {
       console.error('获取结果失败:', error);
@@ -218,7 +226,7 @@ const ResultPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [taskId, fetchDetailedReport]);
+  }, [taskId, fetchDetailedReport, refreshQuota]);
 
   useEffect(() => {
     if (taskId) {

@@ -74,9 +74,18 @@ def download_nltk_data():
     
     try:
         import nltk
-        nltk.download('punkt', download_dir='./models/nltk_data')
-        os.environ['NLTK_DATA'] = os.path.abspath('./models/nltk_data')
-        print("NLTK数据下载完成")
+        data_dir = os.path.abspath('./models/nltk_data')
+        from pathlib import Path
+        Path(data_dir).mkdir(parents=True, exist_ok=True)
+        os.environ['NLTK_DATA'] = data_dir
+        # 下载 punkt
+        nltk.download('punkt', download_dir=data_dir, quiet=True)
+        # 下载 punkt_tab（若可用）
+        try:
+            nltk.download('punkt_tab', download_dir=data_dir, quiet=True)
+        except Exception:
+            pass
+        print(f"NLTK数据下载完成，目录: {data_dir}")
         return True
     except Exception as e:
         print(f"下载NLTK数据时出错: {e}")

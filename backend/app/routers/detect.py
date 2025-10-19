@@ -1,17 +1,79 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from ..schemas.models import DetectionResult, TaskStatus, ParagraphAnalysis, DetailedAnalysisResult
-from ..schemas.database_models import DetectionTask, ParagraphResult, User
+from ..schemas.database_models import DetectionTask, ParagraphResult, User, License, UsageLog
 from ..utils.database import get_db, SessionLocal
 from ..services.file_service import extract_text, clean_up_task_files, UPLOAD_DIR
 from ..services.ai_detection_service import detect_ai_content, detect_ai_content_comprehensive
 from ..services.auth import get_current_user
+from ..services.license_service import get_user_credits
 from typing import List, Dict, Any
 import json
 import asyncio
 import os
+from datetime import datetime
 
 router = APIRouter()
+
+def deduct_user_credit(db: Session, user_id: str, reason: str = "AI检测服务"):
+    """
+    从用户的许可证中扣除1次额度
+    按照优先级：先使用不限次数套餐，然后按即将过期的顺序使用限次套餐
+    """
+    # 获取用户所有未撤销的许可证
+    licenses = db.query(License).filter(
+        License.user_id == user_id,
+        License.revoked == False
+    ).order_by(
+        # 先按是否有过期时间排序（有过期时间的优先），再按过期时间排序
+        License.exp.asc().nullslast()
+    ).all()
+    
+    # 过滤掉已过期的许可证
+    valid_licenses = [
+        lic for lic in licenses 
+        if not lic.exp or lic.exp > datetime.utcnow()
+    ]
+    
+    if not valid_licenses:
+        raise Exception("没有可用的额度")
+    
+    # 优先使用不限次数的套餐
+    unlimited_license = next((lic for lic in valid_licenses if lic.unlimited), None)
+    
+    if unlimited_license:
+        # 使用不限次数套餐，不扣除额度
+        usage_log = UsageLog(
+            license_id=unlimited_license.id,
+            delta=0,
+            reason=f"{reason} (不限次数套餐)"
+        )
+        db.add(usage_log)
+        db.commit()
+        return unlimited_license.credits_remaining
+    
+    # 如果没有不限次数套餐，使用有剩余额度的限次套餐
+    limited_licenses = [lic for lic in valid_licenses if not lic.unlimited and lic.credits_remaining > 0]
+    
+    if not limited_licenses:
+        raise Exception("没有可用的额度")
+    
+    # 从第一个许可证中扣除1次额度
+    license_to_deduct = limited_licenses[0]
+    license_to_deduct.credits_remaining -= 1
+    
+    # 记录使用日志
+    usage_log = UsageLog(
+        license_id=license_to_deduct.id,
+        delta=-1,
+        reason=reason
+    )
+    
+    db.add(license_to_deduct)
+    db.add(usage_log)
+    db.commit()
+    
+    return license_to_deduct.credits_remaining
 
 @router.get("/detect/{task_id}", response_model=DetectionResult)
 async def get_detection_status(
@@ -131,6 +193,22 @@ async def start_detection(
     """
     开始AI内容检测任务
     """
+    # 检查用户额度
+    try:
+        credits_info = get_user_credits(db, current_user.id)
+        total_credits = credits_info.get("totalCredits", 0)
+        
+        if total_credits <= 0:
+            raise HTTPException(
+                status_code=402,  # Payment Required
+                detail="您的检测次数已用完，请充值后继续使用"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"检查用户额度时出错: {str(e)}")
+        raise HTTPException(status_code=500, detail="检查额度失败，请稍后重试")
+    
     # 查询任务
     task = db.query(DetectionTask).filter(DetectionTask.id == task_id).first()
     
@@ -149,7 +227,8 @@ async def start_detection(
     background_tasks.add_task(
         perform_detection_wrapper,
         task_id=task_id,
-        filename=task.filename
+        filename=task.filename,
+        user_id=current_user.id
     )
     
     return {"message": "检测任务已启动"}
@@ -182,7 +261,7 @@ async def cancel_detection(
     
     return {"message": "检测任务已取消"}
 
-def perform_detection_wrapper(task_id: str, filename: str):
+def perform_detection_wrapper(task_id: str, filename: str, user_id: str):
     """
     后台任务包装器，调用异步检测函数
     """
@@ -192,11 +271,11 @@ def perform_detection_wrapper(task_id: str, filename: str):
     
     # 执行异步任务
     try:
-        loop.run_until_complete(perform_detection(task_id, filename))
+        loop.run_until_complete(perform_detection(task_id, filename, user_id))
     finally:
         loop.close()
 
-async def perform_detection(task_id: str, filename: str):
+async def perform_detection(task_id: str, filename: str, user_id: str):
     """执行AI内容检测的后台任务"""
     db = SessionLocal()
     
@@ -271,7 +350,13 @@ async def perform_detection(task_id: str, filename: str):
             db.add(paragraph)
         
         db.commit()
-        print(f"任务 {task_id} 检测完成，AI生成内容百分比: {ai_percentage}%")
+        
+        # 扣除用户额度（检测成功完成后）
+        try:
+            deduct_user_credit(db, user_id, reason=f"AI检测任务 {task_id}")
+            print(f"任务 {task_id} 检测完成，AI生成内容百分比: {ai_percentage}%，已扣除1次额度")
+        except Exception as credit_error:
+            print(f"扣除额度时出错: {str(credit_error)}，但检测任务已完成")
         
         # 检测完成后清理文件
         clean_up_task_files(task_id)

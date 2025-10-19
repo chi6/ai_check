@@ -2,16 +2,24 @@ import axios from 'axios';
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://106.52.168.146:8000/api',
+  // 生产环境可通过环境变量覆盖，例如：REACT_APP_API_BASE_URL=https://vibe-checker.com/api
+  baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
   timeout: 50000, // 50秒超时
 });
 
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const path = (config.url || '').toString();
+    const userToken = localStorage.getItem('token');
+    const licenseToken = localStorage.getItem('licenseToken');
+    // 针对用量/许可证接口使用licenseToken，其余接口沿用用户token
+    if (path.startsWith('/usage') || path.startsWith('/license')) {
+      if (licenseToken) {
+        config.headers.Authorization = `Bearer ${licenseToken}`;
+      }
+    } else if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
     }
     return config;
   },
@@ -22,11 +30,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    // 处理401错误
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
+    // 不再跳转到 /login，交由调用方自行处理（例如弹窗或提示）
     return Promise.reject(error);
   }
 );
@@ -54,6 +58,9 @@ export const userApi = {
   
   // 获取用户任务列表
   getTasks: () => api.get('/user/tasks'),
+  
+  // 获取用户配额信息
+  getCredits: () => api.get('/user/credits'),
 };
 
 // 文件上传相关API
@@ -132,3 +139,28 @@ export const reportApi = {
 };
 
 export default api; 
+
+// 支付与配额相关API
+export const payApi = {
+  createOrder: ({ channel, packageType, deviceId, credits, amount }) =>
+    api.post('/pay/create_order', { channel, packageType, deviceId, credits, amount }),
+  poll: (orderId) => api.post('/pay/poll', { orderId }),
+};
+
+export const licenseApi = {
+  get: () => api.get('/license'),
+};
+
+export const usageApi = {
+  consume: (units, reason) => api.post('/usage/consume', { units, reason }),
+};
+
+export function setLicenseToken(token) {
+  if (token && typeof token === 'string') {
+    localStorage.setItem('licenseToken', token);
+  }
+}
+
+export function getLicenseToken() {
+  return localStorage.getItem('licenseToken');
+}

@@ -1,38 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout, ConfigProvider, theme, Row, Col, App as AntdApp } from 'antd';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import Result from './pages/Result';
 import History from './pages/History';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Account from './pages/Account';
 import Header from './components/Header';
+import { userApi } from './api/api';
 import './App.css';
 
 const { Content, Footer } = Layout;
 
 function App() {
-  // 设置默认令牌值为一个假的值，这样所有认证检查都会通过
-  // eslint-disable-next-line no-unused-vars
-  const [token, setToken] = useState('dummy-token');
-  const [currentUser, setCurrentUser] = useState({
-    id: 'guest-user',
-    username: '访客用户',
-    email: 'guest@example.com'
-  });
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const quotaBadgeRef = useRef(null);
 
   useEffect(() => {
     // 保存token到本地存储
-    localStorage.setItem('token', token);
+    if (token) {
+      localStorage.setItem('token', token);
+      // 自动获取用户信息
+      const fetchUserInfo = async () => {
+        try {
+          const userInfo = await userApi.getCurrentUser();
+          setCurrentUser(userInfo);
+        } catch (error) {
+          console.error('获取用户信息失败:', error);
+          // 如果token无效，清除token
+          if (error.response?.status === 401) {
+            setToken(null);
+            setCurrentUser(null);
+            localStorage.removeItem('token');
+          }
+        }
+      };
+      fetchUserInfo();
+    } else {
+      localStorage.removeItem('token');
+      setCurrentUser(null);
+    }
   }, [token]);
 
   const handleLogout = () => {
-    // 登出后仍然保持相同的访客状态
-    setCurrentUser({
-      id: 'guest-user',
-      username: '访客用户',
-      email: 'guest@example.com'
-    });
+    setToken(null);
+    setCurrentUser(null);
+    localStorage.removeItem('token');
   };
+
+  // 刷新配额显示的函数，供子组件调用
+  const refreshQuota = useCallback(() => {
+    if (quotaBadgeRef.current) {
+      quotaBadgeRef.current.refresh();
+    }
+  }, []);
 
   // 创建一个符合学术/教育领域特点的主题
   const customTheme = {
@@ -82,20 +106,22 @@ function App() {
             <Header 
               token={token} 
               currentUser={currentUser} 
-              onLogout={handleLogout} 
+              onLogout={handleLogout}
+              quotaBadgeRef={quotaBadgeRef}
             />
             <Content className="responsive-content">
               <Row justify="center">
                 <Col xs={24} sm={24} md={22} lg={20} xl={18}>
                   <div className="site-layout-content">
                     <Routes>
-                      {/* 默认重定向到仪表盘，跳过登录页面 */}
-                      <Route path="/login" element={<Navigate to="/dashboard" />} />
-                      <Route path="/register" element={<Navigate to="/dashboard" />} />
+                      <Route path="/login" element={<Login setToken={setToken} setCurrentUser={setCurrentUser} />} />
+                      <Route path="/register" element={<Register setToken={setToken} setCurrentUser={setCurrentUser} />} />
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/upload" element={<Upload />} />
-                      <Route path="/result/:taskId" element={<Result />} />
+                      <Route path="/upload" element={<Upload refreshQuota={refreshQuota} />} />
+                      <Route path="/result/:taskId" element={<Result refreshQuota={refreshQuota} />} />
                       <Route path="/history" element={<History />} />
+                      <Route path="/account" element={<Account />} />
+                      <Route path="/" element={<Navigate to="/dashboard" />} />
                       <Route path="*" element={<Navigate to="/dashboard" />} />
                     </Routes>
                   </div>

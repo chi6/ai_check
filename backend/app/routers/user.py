@@ -11,6 +11,7 @@ from ..services.auth import (
     get_password_hash,
     get_current_user
 )
+from ..services.license_service import get_user_credits, issue_license
 from datetime import timedelta, datetime
 
 router = APIRouter()
@@ -36,6 +37,18 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    # 赠送新用户5次免费额度
+    try:
+        issue_license(
+            db=db, 
+            credits=5, 
+            user_id=db_user.id,
+            days_valid=None  # 永久有效
+        )
+    except Exception as e:
+        # 如果赠送额度失败，记录日志但不影响注册流程
+        print(f"赠送新用户额度失败: {str(e)}")
     
     return UserResponse(
         id=db_user.id,
@@ -98,4 +111,15 @@ async def get_user_tasks(
             "updated_at": task.updated_at
         })
     
-    return tasks 
+    return tasks
+
+
+@router.get("/user/credits")
+async def get_user_credits_info(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    获取用户的配额信息
+    """
+    return get_user_credits(db, current_user.id) 

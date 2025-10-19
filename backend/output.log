@@ -1,0 +1,71 @@
+nohup: ignoring input
+INFO:     Will watch for changes in these directories: ['/workspace/ai_check/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [10852] using StatReload
+Admin user already exists
+INFO:     Started server process [10854]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+运行在离线模式，将只使用本地模型
+NLTK 数据已准备就绪
+配置中文字体失败: cannot import name 'setup_chinese_fonts' from 'app.utils.font_utils' (/workspace/ai_check/backend/app/utils/font_utils.py)
+使用默认字体设置
+数据库表创建/更新成功
+Admin user already exists
+系统中未找到中文字体，将下载 Noto Sans CJK SC...
+字体 NotoSansCJKsc-Regular.otf 已存在
+
+-----
+
+运行在离线模式，将只使用本地模型
+
+-----
+
+INFO:     172.17.0.1:33104 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:33110 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:33118 - "GET /api/user/me HTTP/1.1" 200 OK
+INFO:     172.17.0.1:33122 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:33124 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:33152 - "GET /api/user/me HTTP/1.1" 200 OK
+unlimited_1day
+{'name': '1天不限次', 'credits': 999999, 'amount': 19.98, 'unlimited': True, 'days_valid': 1, 'description': '24小时内不限次数使用（查重+AI）'}
+200
+{"code_url":"weixin://wxpay/bizpayurl?pr=mzdHZi5z3"}
+200 {'code_url': 'weixin://wxpay/bizpayurl?pr=mzdHZi5z3'}
+INFO:     172.17.0.1:49766 - "POST /api/pay/create_order HTTP/1.1" 200 OK
+INFO:     172.17.0.1:49780 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:49782 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:49792 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:49794 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:49804 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47526 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47542 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47546 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47554 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47558 - "POST /api/pay/poll HTTP/1.1" 200 OK
+decrypt_callback input headers: {'host': 'vibe-checker.com', 'x-real-ip': '43.132.183.192', 'x-forwarded-for': '43.132.183.192', 'x-forwarded-proto': 'https', 'connection': 'upgrade', 'content-length': '935', 'user-agent': 'Mozilla/4.0', 'accept': '*/*', 'wechatpay-nonce': 'srDz6N12w2dyDKIy4tIyMNZjL1t30cvG', 'content-type': 'application/json', 'wechatpay-serial': '1E02A1350F4C943E0E4309CFAF6BC4F640EA4747', 'wechatpay-signature': 'l9zlrcg0AGu2D1DqE32YvwAp2frhbb1GCkkpCvGnoq52Whn4izdTVOX3vx60JS/k0TBlS8BPSnBVOGWS6OdIhlAsErAsE+yyYMxhsSrP5xXYgKM4Ev88GZRz8pOO5VHVWbTKUMCuoVMp6tjfhA4BJUBjOVQaOUVyuSA/OnFDXslDSGef7KNwR2yYCCP4hFqRca6xFga3yToBCWxSzvJ5zIDguhZiTeEuKiiDQCs89x2wqw6LKqRGO73i5QO86zvLUNVTpiCXAMDUVu6/VadCO3q9xSLCe4I8KznF9p98D9Maxtal7ZYoCrz+ZnQSP8NUrTiMjjHhTEBgWSJbYBuVfQ==', 'wechatpay-signature-type': 'WECHATPAY2-SHA256-RSA2048', 'pragma': 'no-cache', 'wechatpay-timestamp': '1760871953'}
+decrypt_callback input body: {'id': '2ca313b9-c08f-5626-a4be-9516d89edcf3', 'create_time': '2025-10-19T19:05:53+08:00', 'resource_type': 'encrypt-resource', 'event_type': 'TRANSACTION.SUCCESS', 'summary': '支付成功', 'resource': {'original_type': 'transaction', 'algorithm': 'AEAD_AES_256_GCM', 'ciphertext': 'P8SXWyfEJU9SC1y+t+lZa8Na3M+ZJh8oNq7oWoL0xMZ6scVjo/no+FsED40rp4SC+g+18QmyB0h8B7P2DXapEvb3fAJW5xvtkHtEE4Pi5rRVhgBk7MAt8g79OClQZCf33Tce8/DdVxxnL8FIQv4wZb+vI4QtLt2hP+rs49rQOBEbtfiTWKcix7vkTVSnRBuHfvT/rQbNaps4aSvvNwLagjv4cWSk6+dZTNHw+MQvGA07wprmFY3uLlwcF77a9kD+/U3cAxCYi8t2+QKr4xOBNzxO9qcNWsqPYG88p+o4RPLcaCoSAN/TaNHMg/SiO4wemiV0IxQtNifGo14tXilnCBU8z5pTsg5RVVv2RoermJ8n7JUnXqhoFyZpkRA5FdwcYUbW3veaySVYW4n8cr6vLTZY0bL05UAOU4Anp6h7pai4aW8rCdnT+WTNRCO4EKM3dG8D4MoUN4tAPES1J5QLzlUr+2UkoFz9k31Pgji5Mw21Er7d9oFelEL3/kRrXHd6e07kQOMGhn3/qqiKol9M0dcnOKC3LawmgJK/NBE3BdXb+z7kJrxfNjngcTwW/yPSfOMu5MGmfDx33R7AomeXCx6SKBsEkQ==', 'associated_data': 'transaction', 'nonce': '5jV5q10CbygM'}}
+decrypt_callback result: {"mchid":"1725386690","appid":"wx3475850e61180d0c","out_trade_no":"c66cbdb11a0345d59e463f2306b7acf3","transaction_id":"4200002905202510199866995584","trade_type":"NATIVE","trade_state":"SUCCESS","trade_state_desc":"支付成功","bank_type":"OTHERS","attach":"","success_time":"2025-10-19T19:05:53+08:00","payer":{"openid":"o0uHl19AFfCAkfrSsSf7zcxOqDk0"},"amount":{"total":1998,"payer_total":1998,"currency":"CNY","payer_currency":"CNY"}}
+decrypt_callback result type: <class 'str'>
+wechat_verify result: {'resource': '{"mchid":"1725386690","appid":"wx3475850e61180d0c","out_trade_no":"c66cbdb11a0345d59e463f2306b7acf3","transaction_id":"4200002905202510199866995584","trade_type":"NATIVE","trade_state":"SUCCESS","trade_state_desc":"支付成功","bank_type":"OTHERS","attach":"","success_time":"2025-10-19T19:05:53+08:00","payer":{"openid":"o0uHl19AFfCAkfrSsSf7zcxOqDk0"},"amount":{"total":1998,"payer_total":1998,"currency":"CNY","payer_currency":"CNY"}}'}
+payload: {'id': '2ca313b9-c08f-5626-a4be-9516d89edcf3', 'create_time': '2025-10-19T19:05:53+08:00', 'resource_type': 'encrypt-resource', 'event_type': 'TRANSACTION.SUCCESS', 'summary': '支付成功', 'resource': {'original_type': 'transaction', 'algorithm': 'AEAD_AES_256_GCM', 'ciphertext': 'P8SXWyfEJU9SC1y+t+lZa8Na3M+ZJh8oNq7oWoL0xMZ6scVjo/no+FsED40rp4SC+g+18QmyB0h8B7P2DXapEvb3fAJW5xvtkHtEE4Pi5rRVhgBk7MAt8g79OClQZCf33Tce8/DdVxxnL8FIQv4wZb+vI4QtLt2hP+rs49rQOBEbtfiTWKcix7vkTVSnRBuHfvT/rQbNaps4aSvvNwLagjv4cWSk6+dZTNHw+MQvGA07wprmFY3uLlwcF77a9kD+/U3cAxCYi8t2+QKr4xOBNzxO9qcNWsqPYG88p+o4RPLcaCoSAN/TaNHMg/SiO4wemiV0IxQtNifGo14tXilnCBU8z5pTsg5RVVv2RoermJ8n7JUnXqhoFyZpkRA5FdwcYUbW3veaySVYW4n8cr6vLTZY0bL05UAOU4Anp6h7pai4aW8rCdnT+WTNRCO4EKM3dG8D4MoUN4tAPES1J5QLzlUr+2UkoFz9k31Pgji5Mw21Er7d9oFelEL3/kRrXHd6e07kQOMGhn3/qqiKol9M0dcnOKC3LawmgJK/NBE3BdXb+z7kJrxfNjngcTwW/yPSfOMu5MGmfDx33R7AomeXCx6SKBsEkQ==', 'associated_data': 'transaction', 'nonce': '5jV5q10CbygM'}}
+resource: {"mchid":"1725386690","appid":"wx3475850e61180d0c","out_trade_no":"c66cbdb11a0345d59e463f2306b7acf3","transaction_id":"4200002905202510199866995584","trade_type":"NATIVE","trade_state":"SUCCESS","trade_state_desc":"支付成功","bank_type":"OTHERS","attach":"","success_time":"2025-10-19T19:05:53+08:00","payer":{"openid":"o0uHl19AFfCAkfrSsSf7zcxOqDk0"},"amount":{"total":1998,"payer_total":1998,"currency":"CNY","payer_currency":"CNY"}}
+order_id: c66cbdb11a0345d59e463f2306b7acf3
+INFO:     172.17.0.1:47564 - "POST /api/pay/notify/wechat HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47568 - "POST /api/pay/poll HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47570 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:47576 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:37702 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:37704 - "GET /api/user/me HTTP/1.1" 200 OK
+INFO:     172.17.0.1:37714 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:37716 - "GET /api/user/me HTTP/1.1" 200 OK
+INFO:     172.17.0.1:41504 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:41506 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:59438 - "GET /api/user/me HTTP/1.1" 200 OK
+INFO:     172.17.0.1:59432 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:59448 - "GET /api/user/me HTTP/1.1" 200 OK
+INFO:     172.17.0.1:59460 - "GET /api/user/credits HTTP/1.1" 200 OK
+INFO:     172.17.0.1:50806 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:50818 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:46524 - "GET /api/user/tasks HTTP/1.1" 200 OK
+INFO:     172.17.0.1:46534 - "GET /api/user/tasks HTTP/1.1" 200 OK

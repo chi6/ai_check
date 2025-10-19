@@ -17,9 +17,12 @@ const Login = ({ setToken, setCurrentUser }) => {
       const response = await userApi.login(values.email, values.password);
       
       // 保存token和用户信息
-      setToken(response.access_token);
+      const accessToken = response.access_token;
+      // 先同步设置到localStorage，确保后续API调用能读取到token
+      localStorage.setItem('token', accessToken);
+      setToken(accessToken);
       
-      // 获取用户信息
+      // 获取用户信息（此时axios拦截器能从localStorage读取到token）
       const userInfo = await userApi.getCurrentUser();
       setCurrentUser(userInfo);
       

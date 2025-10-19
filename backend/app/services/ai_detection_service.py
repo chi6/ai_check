@@ -50,11 +50,40 @@ def paragraph_split(text: str, min_chars: int = 30) -> List[str]:
         processed.append(buffer.strip())
     return processed
 
+def safe_sent_tokenize(text: str) -> List[str]:
+    """安全的句子分割：优先使用NLTK，失败时下载依赖或使用正则回退"""
+    try:
+        from nltk.tokenize import sent_tokenize as _sent_tokenize
+        try:
+            return _sent_tokenize(text)
+        except LookupError:
+            import nltk
+            data_dir = os.environ.get("NLTK_DATA") or os.path.abspath("models/nltk_data")
+            os.makedirs(data_dir, exist_ok=True)
+            os.environ["NLTK_DATA"] = data_dir
+            try:
+                nltk.download("punkt", download_dir=data_dir, quiet=True)
+            except Exception:
+                pass
+            try:
+                nltk.download("punkt_tab", download_dir=data_dir, quiet=True)
+            except Exception:
+                pass
+            try:
+                return _sent_tokenize(text)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    # 正则回退（适用于中英混合常见终止符）
+    pieces = re.split(r'(?<=[。！？!?\.])\s+', text)
+    return [p.strip() for p in pieces if p.strip()]
+
 def segment_sentences(blocks: List[str], max_chars: int = 300) -> List[str]:
     """将段落按句子分割，确保每个片段不超过最大字符数"""
     result = []
     for block in blocks:
-        sentences = sent_tokenize(block)
+        sentences = safe_sent_tokenize(block)
         segment = ""
         for sentence in sentences:
             if len(segment) + len(sentence) < max_chars:
@@ -358,6 +387,9 @@ def estimate_ai_likelihood(perplexity: float, style: float, ai_percentage: float
             return "高（AI生成可能性大）"
         else:
             return "中（可能为AI生成）"
+    elif ai_percentage > 70:
+        # AI比例在70-75之间，至少应该是"中"
+        return "中（可能为AI生成）"
     
     # 标准判断逻辑（原有逻辑，但放宽了风格一致性要求）
     if perplexity < 20 and style > 0.85:
@@ -366,7 +398,11 @@ def estimate_ai_likelihood(perplexity: float, style: float, ai_percentage: float
         return "中（可能为AI生成）"
     else:
         # 如果困惑度和风格一致性不明显，但AI百分比较高，仍可能是AI
-        if ai_percentage > 50 and perplexity < 35:
+        if ai_percentage > 60:
+            # AI比例超过60%，至少应该是"中"
+            return "中（可能为AI生成）"
+        elif ai_percentage > 50 and perplexity < 40:
+            # AI比例超过50%且困惑度不太高
             return "中（可能为AI生成）"
         else:
             return "低（更可能为人类写作）"

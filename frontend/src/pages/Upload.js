@@ -14,7 +14,7 @@ const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
 const { Step } = Steps;
 
-const UploadPage = () => {
+const UploadPage = ({ refreshQuota }) => {
   const [fileList, setFileList] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadedTaskId, setUploadedTaskId] = useState(null);
@@ -202,6 +202,11 @@ const UploadPage = () => {
             setStatusMessage('检测已完成！即将跳转到结果页面...');
             console.log('检测已完成！更新进度到100%，准备导航到结果页面');
             
+            // 刷新配额显示
+            if (refreshQuota) {
+              refreshQuota();
+            }
+            
             // 如果是批量检测中的一个文件，更新文件状态
             if (fileIndex !== null) {
               const updatedFiles = [...detectingFiles];
@@ -273,6 +278,15 @@ const UploadPage = () => {
     } catch (error) {
       console.error('开始检测失败:', error);
       
+      // 特殊处理额度不足的情况（402 Payment Required）
+      if (error.response?.status === 402) {
+        const errorMsg = '检测次数已用完，请先充值后继续使用';
+        notifyError('检测次数不足', errorMsg);
+        setError(errorMsg);
+        setDetecting(false);
+        return;
+      }
+      
       // 如果是批量检测中的一个文件，更新文件状态
       if (fileIndex !== null) {
         const updatedFiles = [...detectingFiles];
@@ -284,6 +298,7 @@ const UploadPage = () => {
         notifyError('检测启动失败', `文件 "${updatedFiles[fileIndex].name}" 检测启动失败`);
       } else {
         setError('开始检测失败：' + (error.response?.data?.detail || '请稍后再试'));
+        setDetecting(false);
       }
     }
   };

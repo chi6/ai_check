@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from ..utils.database import Base, engine, SessionLocal
 from ..schemas.database_models import User, DetectionTask, ParagraphResult
+from sqlalchemy import text
 from ..services.auth import get_password_hash
 
 def init_db():
@@ -9,6 +10,18 @@ def init_db():
     """
     # Create tables
     Base.metadata.create_all(bind=engine)
+    
+    # Ensure new columns for existing SQLite tables (idempotent)
+    try:
+        with engine.connect() as conn:
+            # orders.license_token
+            result = conn.execute(text("PRAGMA table_info(orders)"))
+            existing_cols = {row[1] for row in result.fetchall()}
+            if "license_token" not in existing_cols:
+                conn.execute(text("ALTER TABLE orders ADD COLUMN license_token TEXT"))
+                print("Added column orders.license_token")
+    except Exception as e:
+        print(f"DB schema ensure step skipped/failed: {e}")
     
     # Create admin user
     db = SessionLocal()

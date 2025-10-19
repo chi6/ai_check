@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import upload, detect, report, user
+from .routers import pay, notify, license as license_router, usage
 import matplotlib
 import os
 import subprocess
@@ -13,12 +14,31 @@ from .utils.font_utils import init_fonts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 下载NLTK数据
-try:
-    import nltk
-    nltk.download('punkt', quiet=True)
-    print("NLTK punkt 数据已下载")
-except Exception as e:
-    print(f"NLTK数据下载失败: {str(e)}")
+def ensure_nltk_data():
+    try:
+        import nltk
+        import nltk.data as nltk_data
+        data_dir = os.environ.get("NLTK_DATA") or os.path.abspath("models/nltk_data")
+        os.makedirs(data_dir, exist_ok=True)
+        os.environ["NLTK_DATA"] = data_dir
+        # 确保 punkt
+        try:
+            nltk_data.find("tokenizers/punkt")
+        except LookupError:
+            nltk.download("punkt", download_dir=data_dir, quiet=True)
+        # 确保 punkt_tab（较新NLTK版本需要）
+        try:
+            nltk_data.find("tokenizers/punkt_tab")
+        except LookupError:
+            try:
+                nltk.download("punkt_tab", download_dir=data_dir, quiet=True)
+            except Exception:
+                pass
+        print("NLTK 数据已准备就绪")
+    except Exception as e:
+        print(f"NLTK数据准备失败: {str(e)}")
+
+ensure_nltk_data()
 
 # 使用字体工具函数设置中文字体
 try:
@@ -55,9 +75,15 @@ app.add_middleware(
 
 # 包含路由
 app.include_router(upload.router, prefix="/api", tags=["上传"])
+# 兼容无前缀访问（例如前端错误直连 /upload）
+app.include_router(upload.router, tags=["上传(兼容)"])
 app.include_router(detect.router, prefix="/api", tags=["检测"])
 app.include_router(report.router, prefix="/api", tags=["报告"])
 app.include_router(user.router, prefix="/api", tags=["用户"])
+app.include_router(pay.router, prefix="/api", tags=["支付"])
+app.include_router(notify.router, prefix="/api", tags=["支付回调"])
+app.include_router(license_router.router, prefix="/api", tags=["许可证"])
+app.include_router(usage.router, prefix="/api", tags=["用量"])
 
 # 更新报告路由API文档
 for route in report.router.routes:

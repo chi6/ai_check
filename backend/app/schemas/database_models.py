@@ -60,3 +60,44 @@ class ParagraphResult(Base):
     task_id = Column(String, ForeignKey("detection_tasks.id"))
     
     task = relationship("DetectionTask", back_populates="paragraphs") 
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    channel = Column(String, index=True)  # wechat | alipay
+    amount = Column(Float)
+    credits = Column(Integer)
+    package_type = Column(String, nullable=True)  # 套餐类型: detect_once, ai_detect_once, unlimited_1day, unlimited_1week
+    status = Column(String, index=True, default="PENDING")  # PENDING | PAID | REFUNDED | CLOSED
+    license_id = Column(String, ForeignKey("licenses.id"), nullable=True)
+    license_token = Column(Text, nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # 关联用户
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class License(Base):
+    __tablename__ = "licenses"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    token_hash = Column(String, unique=True, index=True)
+    credits_remaining = Column(Integer, default=0)
+    unlimited = Column(Boolean, default=False)  # 是否为不限次数套餐
+    exp = Column(DateTime, nullable=True)
+    revoked = Column(Boolean, default=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # 关联用户
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = relationship("User", backref="licenses")
+
+
+class UsageLog(Base):
+    __tablename__ = "usage_logs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    license_id = Column(String, ForeignKey("licenses.id"))
+    delta = Column(Integer)  # 消耗的额度（负数）或返还（正数）
+    reason = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)

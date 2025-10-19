@@ -53,21 +53,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """获取当前用户"""
-    # 跳过令牌验证，直接返回一个默认的访客用户
-    # 检查数据库中是否已有访客用户，如果没有则创建一个
-    guest_user = db.query(User).filter(User.email == "guest@example.com").first()
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="无法验证凭据",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     
-    if guest_user is None:
-        # 创建一个新的访客用户
-        guest_user = User(
-            id="guest-user",
-            email="guest@example.com",
-            username="访客用户",
-            hashed_password=get_password_hash("guestpassword"),
-            created_at=datetime.utcnow()
-        )
-        db.add(guest_user)
-        db.commit()
-        db.refresh(guest_user)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
     
-    return guest_user 
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    
+    return user 

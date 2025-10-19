@@ -26,7 +26,10 @@ const Register = ({ setToken, setCurrentUser }) => {
       const loginResponse = await userApi.login(values.email, values.password);
       
       // 保存token和用户信息
-      setToken(loginResponse.access_token);
+      const accessToken = loginResponse.access_token;
+      // 先同步设置到localStorage，确保后续操作能读取到token
+      localStorage.setItem('token', accessToken);
+      setToken(accessToken);
       setCurrentUser(registerResponse);
       
       message.success('注册成功！已自动登录');
