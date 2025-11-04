@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert, Spin } from 'antd';
+import { Upload, Button, Typography, Card, Steps, Progress, Space, Alert, Spin, Input, Tabs, message } from 'antd';
 import { 
   InboxOutlined, 
   FileTextOutlined, 
   CheckCircleOutlined, 
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  CopyOutlined,
+  FileAddOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { uploadApi, detectApi } from '../api/api';
@@ -13,6 +15,7 @@ import { showSuccess, showWarning, showError, notifySuccess, notifyError, notify
 const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
 const { Step } = Steps;
+const { TextArea } = Input;
 
 const UploadPage = ({ refreshQuota }) => {
   const [fileList, setFileList] = useState([]);
@@ -24,6 +27,8 @@ const UploadPage = ({ refreshQuota }) => {
   const [error, setError] = useState(null);
   const [detectingFiles, setDetectingFiles] = useState([]);
   const [statusMessage, setStatusMessage] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'text'
   
   const navigate = useNavigate();
 
@@ -33,9 +38,14 @@ const UploadPage = ({ refreshQuota }) => {
     fileList,
     beforeUpload: (file) => {
       // 检查文件类型
-      const isValidType = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(file.type);
+      const isValidType = [
+        'application/pdf', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+        'application/msword',  // .doc 格式
+        'text/plain'
+      ].includes(file.type);
       if (!isValidType) {
-        showError('只支持PDF、DOCX和TXT格式的文件！');
+        showError('只支持PDF、DOC、DOCX和TXT格式的文件！');
         return Upload.LIST_IGNORE;
       }
       
@@ -111,6 +121,87 @@ const UploadPage = ({ refreshQuota }) => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleTextUpload = async () => {
+    if (!textContent.trim()) {
+      showWarning('请输入要检测的文本内容！');
+      return;
+    }
+    
+    // 检查文本长度（至少20个字符，最多100000个字符）
+    if (textContent.trim().length < 20) {
+      showWarning('文本内容太短，至少需要20个字符！');
+      return;
+    }
+    
+    if (textContent.length > 100000) {
+      showWarning('文本内容太长，请不要超过100000个字符！');
+      return;
+    }
+    
+    setUploading(true);
+    setError(null);
+    setCurrentStep(0);
+    
+    try {
+      // 将文本内容转换为文件对象
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const file = new File([blob], 'text-content.txt', { type: 'text/plain' });
+      
+      // 模拟进度
+      let progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+      
+      const result = await uploadApi.uploadFile(file);
+      
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      console.log('Text upload result:', result);
+      
+      // 验证任务ID
+      if (!result || !result.task_id) {
+        throw new Error('上传成功但未返回有效的任务ID');
+      }
+      
+      if (typeof result.task_id !== 'string') {
+        console.error('Server returned non-string task ID:', result.task_id);
+        const stringTaskId = String(result.task_id);
+        console.log('Converted task ID to string:', stringTaskId);
+        setUploadedTaskId(stringTaskId);
+      } else {
+        setUploadedTaskId(result.task_id);
+      }
+      
+      setCurrentStep(1);
+      showSuccess('文本上传成功！');
+    } catch (error) {
+      console.error('文本上传失败:', error);
+      setError('文本上传失败：' + (error.response?.data?.detail || error.message || '请稍后再试'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCopyText = () => {
+    if (!textContent.trim()) {
+      showWarning('没有可复制的文本内容！');
+      return;
+    }
+    
+    navigator.clipboard.writeText(textContent).then(() => {
+      message.success('文本已复制到剪贴板！');
+    }).catch(() => {
+      message.error('复制失败，请手动复制！');
+    });
   };
 
   const handleStartDetection = async (taskId = uploadedTaskId, fileIndex = null) => {
@@ -333,7 +424,7 @@ const UploadPage = ({ refreshQuota }) => {
   const steps = [
     {
       title: '上传论文',
-      description: '上传PDF、DOCX或TXT格式的论文',
+      description: '上传PDF、DOC、DOCX或TXT格式的论文',
       icon: <InboxOutlined />
     },
     {
@@ -351,7 +442,7 @@ const UploadPage = ({ refreshQuota }) => {
   return (
     <div>
       <Title level={2}>上传论文检测</Title>
-      <Paragraph>支持PDF、DOCX和TXT格式文件，文件大小不超过50MB。</Paragraph>
+      <Paragraph>支持PDF、DOC、DOCX和TXT格式文件，或直接粘贴文本内容进行检测。</Paragraph>
       
       <Steps current={currentStep} style={{ marginBottom: 30 }}>
         {steps.map(item => (
@@ -378,25 +469,100 @@ const UploadPage = ({ refreshQuota }) => {
       
       {currentStep === 0 && (
         <Card>
-          <Dragger {...uploadProps} disabled={uploading}>
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
-            <p className="ant-upload-hint">支持单个文件上传，仅支持PDF、DOCX和TXT格式</p>
-          </Dragger>
-          
-          <div style={{ marginTop: 20, textAlign: 'center' }}>
-            <Button 
-              type="primary" 
-              onClick={handleUpload} 
-              loading={uploading} 
-              disabled={fileList.length === 0}
-              size="large"
-            >
-              {uploading ? '上传中...' : '开始上传'}
-            </Button>
-          </div>
+          <Tabs
+            activeKey={uploadMode}
+            onChange={(key) => {
+              setUploadMode(key);
+              setError(null);
+            }}
+            items={[
+              {
+                key: 'file',
+                label: (
+                  <span>
+                    <FileAddOutlined />
+                    文件上传
+                  </span>
+                ),
+                children: (
+                  <>
+                    <Dragger {...uploadProps} disabled={uploading}>
+                      <p className="ant-upload-drag-icon">
+                        <InboxOutlined />
+                      </p>
+                      <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+                      <p className="ant-upload-hint">支持单个文件上传，仅支持PDF、DOC、DOCX和TXT格式</p>
+                    </Dragger>
+                    
+                    <div style={{ marginTop: 20, textAlign: 'center' }}>
+                      <Button 
+                        type="primary" 
+                        onClick={handleUpload} 
+                        loading={uploading} 
+                        disabled={fileList.length === 0}
+                        size="large"
+                      >
+                        {uploading ? '上传中...' : '开始上传'}
+                      </Button>
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: 'text',
+                label: (
+                  <span>
+                    <FileTextOutlined />
+                    文本输入
+                  </span>
+                ),
+                children: (
+                  <>
+                    <TextArea
+                      value={textContent}
+                      onChange={(e) => setTextContent(e.target.value)}
+                      placeholder="请粘贴或输入要检测的文本内容（至少20个字符，不超过100000个字符）..."
+                      autoSize={{ minRows: 10, maxRows: 20 }}
+                      disabled={uploading}
+                      showCount
+                      maxLength={100000}
+                      style={{ marginBottom: 20 }}
+                    />
+                    
+                    <div style={{ marginTop: 20, textAlign: 'center' }}>
+                      <Space>
+                        <Button 
+                          type="primary" 
+                          onClick={handleTextUpload} 
+                          loading={uploading} 
+                          disabled={!textContent.trim() || textContent.trim().length < 20}
+                          size="large"
+                          icon={<FileTextOutlined />}
+                        >
+                          {uploading ? '提交中...' : '提交检测'}
+                        </Button>
+                        <Button 
+                          onClick={handleCopyText}
+                          disabled={!textContent.trim()}
+                          size="large"
+                          icon={<CopyOutlined />}
+                        >
+                          复制文本
+                        </Button>
+                        <Button 
+                          onClick={() => setTextContent('')}
+                          disabled={!textContent.trim() || uploading}
+                          size="large"
+                        >
+                          清空文本
+                        </Button>
+                      </Space>
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
           
           {uploading && (
             <div style={{ marginTop: 20 }}>
@@ -427,8 +593,10 @@ const UploadPage = ({ refreshQuota }) => {
                 size="large" 
                 onClick={() => {
                   setFileList([]);
+                  setTextContent('');
                   setCurrentStep(0);
                   setUploadedTaskId(null);
+                  setProgress(0);
                 }}
               >
                 重新上传
@@ -470,8 +638,10 @@ const UploadPage = ({ refreshQuota }) => {
                 size="large" 
                 onClick={() => {
                   setFileList([]);
+                  setTextContent('');
                   setCurrentStep(0);
                   setUploadedTaskId(null);
+                  setProgress(0);
                 }}
               >
                 检测新论文

@@ -4,6 +4,7 @@ import shutil
 import aiofiles
 # import fitz  # PyMuPDF
 import docx
+import docx2txt
 from pathlib import Path
 # 导入我们新创建的模块
 from .pymupdf_related import extract_text_from_pdf as pdf_text_extractor
@@ -51,6 +52,15 @@ def extract_text_from_docx(file_path: str) -> str:
         print(f"从DOCX提取文本时出错: {str(e)}")
     return text
 
+def extract_text_from_doc(file_path: str) -> str:
+    """从DOC文件中提取文本（旧版Word格式）"""
+    text = ""
+    try:
+        text = docx2txt.process(file_path)
+    except Exception as e:
+        print(f"从DOC提取文本时出错: {str(e)}")
+    return text
+
 def extract_text_from_txt(file_path: str) -> str:
     """从TXT文件中提取文本"""
     try:
@@ -72,8 +82,10 @@ def extract_text(task_id: str, filename: str) -> str:
     
     if ext == '.pdf':
         return extract_text_from_pdf(str(file_path))
-    elif ext in ['.docx', '.doc']:
+    elif ext == '.docx':
         return extract_text_from_docx(str(file_path))
+    elif ext == '.doc':
+        return extract_text_from_doc(str(file_path))
     elif ext == '.txt':
         return extract_text_from_txt(str(file_path))
     else:
