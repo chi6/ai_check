@@ -147,6 +147,393 @@ def split_text_with_sliding_window(text: str, window_size: int = 500, step_size:
             
     return segments
 
+# ----------- 新增：文本类型识别和结构分析 -----------
+
+def detect_text_type(text: str) -> str:
+    """
+    识别文本类型（学术文本 vs 普通文本）
+    学术文本需要使用不同的检测阈值和权重
+    """
+    academic_features = 0
+    
+    # 1. 检测引用格式 (Author et al., Year)
+    if re.search(r'\([A-Z][a-z]+(?:\s+(?:&|et\s+al\.?))?\s*,?\s+\d{4}\)', text):
+        academic_features += 1
+    
+    # 2. 检测学术词汇
+    academic_words = ['research', 'study', 'analysis', 'methodology', 
+                      'findings', 'results', 'literature', 'hypothesis',
+                      'theoretical', 'empirical', 'framework']
+    text_lower = text.lower()
+    for word in academic_words:
+        if word in text_lower:
+            academic_features += 1
+            break
+    
+    # 3. 检测正式过渡词
+    formal_transitions = ['furthermore', 'moreover', 'consequently', 
+                          'therefore', 'nevertheless', 'thus', 'hence']
+    for transition in formal_transitions:
+        if re.search(r'\b' + transition + r'\b', text, re.IGNORECASE):
+            academic_features += 1
+            break
+    
+    # 4. 检测图表引用
+    if re.search(r'\b(Fig\.|Table|Figure|Section|Chapter)\s+\d+', text, re.IGNORECASE):
+        academic_features += 1
+    
+    return 'academic' if academic_features >= 2 else 'general'
+
+def split_into_clauses(sentence: str) -> List[str]:
+    """
+    将长句分割成子句（按分号、冒号分割）
+    用于检测长句内部的结构一致性
+    """
+    clauses = []
+    
+    # 首先按分号分割
+    parts = sentence.split(';')
+    
+    # 如果只有一个部分，尝试按冒号分割
+    if len(parts) == 1 and ':' in sentence:
+        colon_parts = sentence.split(':', 1)
+        if len(colon_parts) == 2:
+            # 冒号后的部分可能包含分号
+            after_colon = colon_parts[1]
+            if ';' in after_colon:
+                parts = [colon_parts[0]] + after_colon.split(';')
+            else:
+                parts = colon_parts
+    
+    # 清理并过滤短子句
+    for part in parts:
+        part = part.strip()
+        # 移除句末标点和引用
+        part = re.sub(r'\([^)]+\d{4}\)\.?$', '', part)
+        part = part.rstrip('.,;:!?')
+        
+        # 只保留足够长的子句（至少10个词）
+        if len(part.split()) >= 10:
+            clauses.append(part)
+    
+    return clauses
+
+def compute_multi_level_burstiness(text: str) -> Dict[str, Any]:
+    """
+    多层次爆发度计算
+    
+    关键改进：不仅检测句子间的爆发度，还检测长句内部子句的爆发度
+    这是区分AI生成学术文本和人类写作的关键指标
+    
+    Returns:
+        Dict包含:
+        - paragraph_burstiness: 段落级别爆发度（句子间）
+        - min_clause_burstiness: 最小子句级别爆发度（长句内部）
+        - has_long_sentences_with_clauses: 是否存在包含多个子句的长句
+        - long_sentence_count: 长句数量
+    """
+    try:
+        sentences = safe_sent_tokenize(text)
+        
+        # 1. 段落级别：句子间的爆发度
+        sentence_lengths = [len(s.split()) for s in sentences]
+        
+        if len(sentence_lengths) >= 2:
+            mean_len = np.mean(sentence_lengths)
+            std_len = np.std(sentence_lengths)
+            paragraph_burstiness = std_len / mean_len if mean_len > 0 else 0
+        else:
+            paragraph_burstiness = 0.5
+        
+        # 2. 子句级别：检测长句内部的结构一致性
+        clause_burstiness_scores = []
+        long_sentence_details = []
+        
+        for sentence in sentences:
+            word_count = len(sentence.split())
+            
+            # 对于长句子（>35词），检查内部子句
+            if word_count > 35:
+                # 检查是否包含分号或冒号（表示有子句结构）
+                if ';' in sentence or (': ' in sentence and ';' in sentence):
+                    clauses = split_into_clauses(sentence)
+                    
+                    if len(clauses) >= 2:
+                        clause_lengths = [len(c.split()) for c in clauses]
+                        
+                        # 计算子句长度的一致性
+                        mean_clause_len = np.mean(clause_lengths)
+                        std_clause_len = np.std(clause_lengths)
+                        
+                        if mean_clause_len > 0:
+                            clause_burst = std_clause_len / mean_clause_len
+                            clause_burstiness_scores.append(clause_burst)
+                            
+                            long_sentence_details.append({
+                                'word_count': word_count,
+                                'clause_count': len(clauses),
+                                'clause_lengths': clause_lengths,
+                                'clause_burstiness': clause_burst
+                            })
+                # 新增：对于没有分号但有多个逗号的长句，也检查子句结构
+                elif sentence.count(',') >= 3:
+                    # 按逗号分割，检查是否有重复的结构模式
+                    comma_parts = sentence.split(',')
+                    # 过滤掉太短的部分
+                    valid_parts = [p.strip() for p in comma_parts if len(p.split()) >= 5]
+                    
+                    if len(valid_parts) >= 3:
+                        part_lengths = [len(p.split()) for p in valid_parts]
+                        mean_part_len = np.mean(part_lengths)
+                        std_part_len = np.std(part_lengths)
+                        
+                        if mean_part_len > 0:
+                            part_burst = std_part_len / mean_part_len
+                            clause_burstiness_scores.append(part_burst)
+                            
+                            long_sentence_details.append({
+                                'word_count': word_count,
+                                'clause_count': len(valid_parts),
+                                'clause_lengths': part_lengths,
+                                'clause_burstiness': part_burst,
+                                'type': 'comma_separated'
+                            })
+        
+        # 3. 综合结果
+        result = {
+            'paragraph_burstiness': float(paragraph_burstiness),
+            'sentence_lengths': sentence_lengths,
+            'has_long_sentences_with_clauses': len(clause_burstiness_scores) > 0,
+            'long_sentence_count': len(clause_burstiness_scores),
+            'long_sentence_details': long_sentence_details
+        }
+        
+        # 如果有子句爆发度，记录最小值（最低的爆发度最能体现AI特征）
+        if clause_burstiness_scores:
+            result['min_clause_burstiness'] = float(min(clause_burstiness_scores))
+            result['avg_clause_burstiness'] = float(np.mean(clause_burstiness_scores))
+        else:
+            result['min_clause_burstiness'] = None
+            result['avg_clause_burstiness'] = None
+        
+        return result
+        
+    except Exception as e:
+        print(f"计算多层次爆发度时出错: {str(e)}")
+        return {
+            'paragraph_burstiness': 0.5,
+            'min_clause_burstiness': None,
+            'has_long_sentences_with_clauses': False,
+            'long_sentence_count': 0,
+            'sentence_lengths': []
+        }
+
+def detect_parallel_structures(text: str) -> Dict[str, Any]:
+    """
+    检测AI生成文本的典型平行结构
+    
+    AI生成的学术文本经常使用完美的平行结构：
+    - 冒号 + 多个分号连接的子句
+    - "A; B; and C" 模式
+    - 重复的句式结构
+    """
+    results = {
+        'parallel_structure_count': 0,
+        'patterns_found': []
+    }
+    
+    # 1. 检测：冒号 + 分号子句的模式（AI典型特征）
+    if ':' in text:
+        colon_parts = text.split(':')
+        for part in colon_parts[1:]:  # 检查冒号后的内容
+            semicolon_count = part.count(';')
+            # 降低阈值：1个分号也算，因为"冒号: A; and B"也是典型AI模式
+            if semicolon_count >= 2:
+                results['parallel_structure_count'] += 3  # 增加权重
+                results['patterns_found'].append('colon_with_multiple_semicolons')
+            elif semicolon_count >= 1 and 'and' in part.lower():
+                # 新增：检测"冒号: A; and B"模式
+                results['parallel_structure_count'] += 2
+                results['patterns_found'].append('colon_semicolon_and_pattern')
+    
+    # 2. 检测：三个或更多分号连接的平行句
+    semicolon_sequences = re.findall(r'[^.!?;]+;[^.!?;]+;[^.!?;]+', text)
+    if semicolon_sequences:
+        results['parallel_structure_count'] += len(semicolon_sequences)
+        results['patterns_found'].append('multiple_semicolon_sequence')
+    
+    # 3. 检测：分号 + and 模式（AI常用，即使只有一个）
+    # 改进：单个 "; and they/it" 也算AI特征
+    and_pattern_count = len(re.findall(r';\s*and\s+(?:they|it)\s+', text, re.IGNORECASE))
+    if and_pattern_count >= 1:  # 从2改为1
+        results['parallel_structure_count'] += and_pattern_count
+        results['patterns_found'].append('semicolon_and_pattern')
+    
+    # 4. 检测：序列化列举（First, Second, Third等）- 新增
+    ordinal_patterns = [
+        r'\bFirst,.*?\bSecond,.*?\bThird,',  # First, ... Second, ... Third,
+        r'\bFirstly,.*?\bSecondly,.*?\bThirdly,',  # Firstly, ... Secondly, ... Thirdly,
+    ]
+    
+    for pattern in ordinal_patterns:
+        matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
+        if matches:
+            results['parallel_structure_count'] += 2  # 权重较高
+            results['patterns_found'].append('ordinal_enumeration')
+            break
+    
+    # 5. 检测：重复的"The X Stage [动词] on"模式（新增） - AI学术文本常见
+    stage_pattern = r'The\s+\w+\s+Stage\s+(focuses|centers|concentrates|emphasizes)\s+on'
+    stage_matches = re.findall(stage_pattern, text, re.IGNORECASE)
+    if len(stage_matches) >= 2:  # 至少出现2次
+        results['parallel_structure_count'] += 2  # 权重较高
+        results['patterns_found'].append('repeated_stage_pattern')
+    
+    # 6. 检测：平行的子句开头（相似的句式）
+    sentences = safe_sent_tokenize(text)
+    if len(sentences) >= 3:
+        # 检查是否有3个或更多句子以相似方式开头
+        sentence_starts = []
+        for sent in sentences:
+            words = sent.split()
+            if len(words) >= 3:
+                # 获取前3个词作为句子开头模式
+                start_pattern = ' '.join(words[:3]).lower()
+                sentence_starts.append(start_pattern)
+        
+        # 如果有重复的开头模式
+        from collections import Counter
+        start_counts = Counter(sentence_starts)
+        for pattern, count in start_counts.items():
+            if count >= 3:
+                results['parallel_structure_count'] += 1
+                results['patterns_found'].append('repeated_sentence_starts')
+                break
+    
+    results['total_score'] = results['parallel_structure_count']
+    
+    return results
+
+def detect_ai_vocabulary_enhanced(text: str) -> Dict[str, Any]:
+    """
+    增强版AI词汇检测
+    检测AI生成文本中常见的词汇模式
+    """
+    words = text.split()
+    text_lower = text.lower()
+    total_words = len(words)
+    
+    results = {
+        'high_freq_ai_words': [],
+        'transition_words': [],
+        'hedging_phrases': [],
+        'total_ai_word_count': 0,
+        'ai_vocabulary_density': 0
+    }
+    
+    # 1. AI高频词汇（扩展列表）
+    ai_words = [
+        'exhibit', 'characteristics', 'significant', 'crucial',
+        'essential', 'fundamental', 'comprehensive', 'substantial',
+        'demonstrate', 'illustrate', 'emphasize', 'highlight',
+        'indicates', 'suggests', 'reveals', 'demonstrates',
+        # 新增常见AI词汇
+        'represents', 'enhances', 'contributes', 'facilitates',
+        'serves', 'focuses', 'ensures', 'enables', 'supports',
+        'avoids', 'prevents', 'addresses', 'summarized',
+        'identified', 'characterized', 'prioritized'
+    ]
+    
+    for word in words:
+        word_clean = word.lower().strip('.,;:!?()')
+        if word_clean in ai_words:
+            results['high_freq_ai_words'].append(word_clean)
+    
+    # 2. 过渡词（AI常用）
+    transition_words = [
+        'moreover', 'furthermore', 'consequently', 'therefore',
+        'meanwhile', 'nevertheless', 'thus', 'hence', 'accordingly'
+    ]
+    
+    for word in words:
+        word_clean = word.lower().strip('.,;:!?()')
+        if word_clean in transition_words:
+            results['transition_words'].append(word_clean)
+    
+    # 3. 套话短语
+    hedging_phrases = [
+        'it is important to note',
+        'it is worth noting',
+        'it should be emphasized',
+        'it is necessary to',
+        'it is crucial to understand'
+    ]
+    
+    for phrase in hedging_phrases:
+        if phrase in text_lower:
+            results['hedging_phrases'].append(phrase)
+    
+    # 计算总数和密度
+    results['total_ai_word_count'] = (
+        len(results['high_freq_ai_words']) + 
+        len(results['transition_words']) + 
+        len(results['hedging_phrases'])
+    )
+    
+    if total_words > 0:
+        results['ai_vocabulary_density'] = results['total_ai_word_count'] / total_words
+    
+    # 4. 检测典型AI词汇组合（新增）
+    results['ai_word_combinations'] = []
+    
+    # 常见的AI词汇组合模式
+    ai_combinations = [
+        ('exhibit', 'characteristics'),
+        ('significant', 'impact'),
+        ('crucial', 'role'),
+        ('fundamental', 'importance'),
+        ('demonstrates', 'effectiveness'),
+        ('illustrates', 'significance'),
+        ('highlights', 'importance'),
+        ('emphasizes', 'necessity')
+    ]
+    
+    for word1, word2 in ai_combinations:
+        if word1 in text_lower and word2 in text_lower:
+            results['ai_word_combinations'].append(f'{word1}_{word2}')
+            results['total_ai_word_count'] += 2  # 组合权重更高
+    
+    # 检测"it is necessary to"等套话（额外权重）
+    if any(phrase in text_lower for phrase in ['it is necessary to', 'it is important to note', 'it should be emphasized']):
+        results['total_ai_word_count'] += 3  # 套话权重很高
+    
+    # 5. 检测AI常用短语模式（新增）
+    ai_phrase_patterns = [
+        r'\bserves as\b',  # "serves as"
+        r'\bfocuses on\b',  # "focuses on"
+        r'\brepresents the\b',  # "represents the"
+        r'\benhances the\b',  # "enhances the"
+        r'\bin terms of\b',  # "in terms of"
+        r'\bfrom the perspective of\b',  # "from the perspective of"
+        r'\bare summarized as follows\b',  # "are summarized as follows"
+        r'\bis identified as\b',  # "is identified as"
+        r'\bis characterized by\b',  # "is characterized by"
+        r'\bmust be prioritized\b'  # "must be prioritized"
+    ]
+    
+    import re
+    ai_phrase_count = 0
+    for pattern in ai_phrase_patterns:
+        matches = re.findall(pattern, text_lower)
+        if matches:
+            ai_phrase_count += len(matches)
+    
+    if ai_phrase_count > 0:
+        results['total_ai_word_count'] += ai_phrase_count * 2  # 短语权重较高
+        results['ai_phrase_patterns'] = ai_phrase_count
+    
+    return results
+
 # ----------- 困惑度计算部分 -----------
 
 # 初始化GPT-2模型，用于计算困惑度
@@ -349,66 +736,231 @@ def compute_style_consistency(segments: List[str]) -> float:
 
 def estimate_ai_likelihood(perplexity: float, style: float, ai_percentage: float, segment_count: int) -> str:
     """
-    根据困惑度、风格一致性、AI内容比例和段落数量估计AI生成可能性
-    
-    添加了特殊情况处理：
-    - 当段落数量少时，减少对风格一致性的依赖
-    - 当AI比例高时，提高AI生成可能性
+    [已弃用] 旧版AI可能性估计函数，保留用于兼容性
+    请使用 estimate_ai_likelihood_v2 代替
     """
-    # 当段落数量少于2时，风格一致性参数不可靠，完全忽略风格一致性
-    if segment_count < 2:
-        if perplexity < 20:
-            return "高（AI生成可能性大）"
-        elif perplexity < 30:
-            # 当段落少且困惑度中等时，AI比例权重很高
-            if ai_percentage > 50:
-                return "高（AI生成可能性大）"
-            elif ai_percentage > 0:  # 只要有任何被标记为AI的段落
-                return "中（可能为AI生成）"
-            else:
-                return "低（更可能为人类写作）"
-        else:
-            # 对于高困惑度的情况，只有当AI比例很高时才认为可能是AI
-            if ai_percentage > 80:
-                return "中（可能为AI生成）"
-            else:
-                return "低（更可能为人类写作）"
+    # 调用新版本函数
+    result = estimate_ai_likelihood_v2(
+        text="",  # 旧版本不需要text参数
+        perplexity=perplexity,
+        burstiness_result=None,
+        parallel_structures=None,
+        ai_vocab_result=None,
+        style=style,
+        ai_percentage=ai_percentage,
+        segment_count=segment_count,
+        text_type='general'
+    )
+    return result['ai_likelihood']
+
+def estimate_ai_likelihood_v2(
+    text: str,
+    perplexity: float,
+    burstiness_result: Optional[Dict[str, Any]],
+    parallel_structures: Optional[Dict[str, Any]],
+    ai_vocab_result: Optional[Dict[str, Any]],
+    style: float,
+    ai_percentage: float,
+    segment_count: int,
+    text_type: str = 'general'
+) -> Dict[str, Any]:
+    """
+    增强版AI可能性估计 v2.0
     
-    # 当风格一致性异常低(接近0)但困惑度明显为AI特征时，仍可能是AI生成
-    if style < 0.2 and perplexity < 20:
-        if ai_percentage > 50:
-            return "高（AI生成可能性大）" 
-        else:
-            return "中（可能为AI生成）"
+    关键改进：
+    1. 多层次爆发度检测（段落级 + 子句级）
+    2. 平行结构检测（AI学术文本的典型特征）
+    3. AI词汇密度分析
+    4. 文本类型自适应阈值
+    5. 多维度加权评分系统
     
-    # 当AI比例特别高时，即使其他指标一般，也提高AI可能性
-    if ai_percentage > 75:
-        if perplexity < 30:
-            return "高（AI生成可能性大）"
-        else:
-            return "中（可能为AI生成）"
-    elif ai_percentage > 70:
-        # AI比例在70-75之间，至少应该是"中"
-        return "中（可能为AI生成）"
+    Args:
+        text: 原始文本（用于类型检测）
+        perplexity: 困惑度
+        burstiness_result: 多层次爆发度结果
+        parallel_structures: 平行结构检测结果
+        ai_vocab_result: AI词汇检测结果
+        style: 风格一致性
+        ai_percentage: LLM判断的AI比例
+        segment_count: 段落数量
+        text_type: 文本类型 ('academic' 或 'general')
     
-    # 标准判断逻辑（原有逻辑，但放宽了风格一致性要求）
-    if perplexity < 20 and style > 0.85:
-        return "高（AI生成可能性大）"
-    elif perplexity < 30 and style > 0.75:
-        return "中（可能为AI生成）"
+    Returns:
+        Dict包含:
+        - ai_likelihood: 可能性描述
+        - ai_score: 数值评分 (0-100)
+        - confidence: 置信度
+        - key_indicators: 关键指标列表
+    """
+    ai_score = 0
+    indicators = []
+    
+    # 根据文本类型设置阈值
+    if text_type == 'academic':
+        thresholds = {
+            'perplexity_high': 15,      # 学术文本困惑度通常较低
+            'perplexity_medium': 25,
+            'burstiness_low': 0.20,     # 学术文本阈值更严格
+            'burstiness_medium': 0.30,
+            'clause_burstiness_critical': 0.15,  # 子句爆发度阈值
+            'parallel_weight_high': 35,  # 学术文本平行结构权重更高
+            'parallel_weight_medium': 25,
+            'vocab_density_threshold': 0.03
+        }
     else:
-        # 如果困惑度和风格一致性不明显，但AI百分比较高，仍可能是AI
-        if ai_percentage > 60:
-            # AI比例超过60%，至少应该是"中"
-            return "中（可能为AI生成）"
-        elif ai_percentage > 50 and perplexity < 40:
-            # AI比例超过50%且困惑度不太高
-            return "中（可能为AI生成）"
-        else:
-            return "低（更可能为人类写作）"
+        thresholds = {
+            'perplexity_high': 20,
+            'perplexity_medium': 30,
+            'burstiness_low': 0.25,
+            'burstiness_medium': 0.35,
+            'clause_burstiness_critical': 0.20,
+            'parallel_weight_high': 25,
+            'parallel_weight_medium': 15,
+            'vocab_density_threshold': 0.05
+        }
+    
+    # 1. 困惑度评分 (最高25分)
+    if perplexity < thresholds['perplexity_high']:
+        ai_score += 25
+        indicators.append(f"困惑度极低({perplexity:.2f})")
+    elif perplexity < thresholds['perplexity_medium']:
+        ai_score += 15
+        indicators.append(f"困惑度偏低({perplexity:.2f})")
+    elif perplexity < 35:
+        ai_score += 5
+    
+    # 2. 多层次爆发度评分 (最高35分) - 最关键的指标！
+    if burstiness_result:
+        # 优先检查子句级别爆发度（针对长句内部结构）
+        if burstiness_result.get('has_long_sentences_with_clauses'):
+            min_clause_burst = burstiness_result.get('min_clause_burstiness')
+            if min_clause_burst is not None:
+                if min_clause_burst < thresholds['clause_burstiness_critical']:
+                    ai_score += 35
+                    indicators.append(f"子句级爆发度极低({min_clause_burst:.3f})，长句内部结构高度一致")
+                elif min_clause_burst < thresholds['burstiness_low']:
+                    ai_score += 30
+                    indicators.append(f"子句级爆发度很低({min_clause_burst:.3f})")
+                elif min_clause_burst < thresholds['burstiness_medium']:
+                    ai_score += 20
+                    indicators.append(f"子句级爆发度偏低({min_clause_burst:.3f})")
+        
+        # 如果没有子句级数据，使用段落级爆发度
+        if ai_score < 20:  # 如果子句级没有贡献太多分数
+            para_burst = burstiness_result.get('paragraph_burstiness', 0.5)
+            if para_burst < thresholds['burstiness_low']:
+                additional_score = min(25, 25 - (ai_score // 2))  # 避免重复计分
+                ai_score += additional_score
+                if additional_score > 0:
+                    indicators.append(f"段落级爆发度低({para_burst:.3f})")
+            elif para_burst < thresholds['burstiness_medium']:
+                additional_score = min(15, 15 - (ai_score // 3))
+                ai_score += additional_score
+    
+    # 3. 平行结构评分 (最高35分) - 学术AI文本的显著特征
+    if parallel_structures:
+        parallel_score = parallel_structures.get('total_score', 0)
+        patterns = parallel_structures.get('patterns_found', [])
+        
+        if parallel_score >= 3:
+            weight = thresholds['parallel_weight_high']
+            ai_score += weight
+            indicators.append(f"检测到显著的平行结构模式(得分:{parallel_score})")
+            if 'colon_with_multiple_semicolons' in patterns:
+                indicators.append("检测到AI典型模式：冒号+多个分号")
+        elif parallel_score >= 2:
+            weight = thresholds['parallel_weight_medium']
+            ai_score += weight
+            indicators.append(f"检测到平行结构(得分:{parallel_score})")
+        elif parallel_score >= 1:
+            ai_score += 15
+            indicators.append("检测到轻微平行结构")
+        
+        # 额外检查特定模式（新增）
+        if 'ordinal_enumeration' in patterns:
+            ai_score += 10
+            indicators.append("检测到序列化列举（First, Second, Third）")
+        if 'semicolon_and_pattern' in patterns:
+            ai_score += 10
+            indicators.append("检测到分号+and平行结构")
+        if 'repeated_stage_pattern' in patterns:
+            ai_score += 10
+            indicators.append("检测到重复句式：The X Stage [动词] on")
+    
+    # 4. AI词汇密度评分 (最高20分)
+    if ai_vocab_result:
+        vocab_density = ai_vocab_result.get('ai_vocabulary_density', 0)
+        vocab_count = ai_vocab_result.get('total_ai_word_count', 0)
+        
+        if vocab_density > thresholds['vocab_density_threshold'] * 2:
+            ai_score += 15
+            indicators.append(f"AI词汇密度高({vocab_density:.1%})")
+        elif vocab_density > thresholds['vocab_density_threshold']:
+            ai_score += 10
+            indicators.append(f"AI词汇密度中等({vocab_density:.1%})")
+        elif vocab_count >= 5:
+            ai_score += 5
+            indicators.append(f"AI词汇数量较多({vocab_count}个)")
+        
+        # 检测AI词汇组合
+        ai_combinations = ai_vocab_result.get('ai_word_combinations', [])
+        if ai_combinations:
+            ai_score += min(10, len(ai_combinations) * 5)
+            indicators.append(f"检测到AI词汇组合({len(ai_combinations)}个)")
+        
+        # 检测AI短语模式（新增）
+        ai_phrase_count = ai_vocab_result.get('ai_phrase_patterns', 0)
+        if ai_phrase_count >= 3:
+            ai_score += 15
+            indicators.append(f"检测到大量AI短语模式({ai_phrase_count}个)")
+        elif ai_phrase_count >= 1:
+            ai_score += 8
+            indicators.append(f"检测到AI短语模式({ai_phrase_count}个)")
+    
+    # 5. 风格一致性评分 (最高10分) - 权重降低
+    if segment_count >= 2:
+        if style > 0.9:
+            ai_score += 10
+            indicators.append(f"风格一致性过高({style:.2f})")
+        elif style > 0.85:
+            ai_score += 5
+    
+    # 6. LLM判断评分 (最高10分)
+    if ai_percentage > 80:
+        ai_score += 10
+        indicators.append(f"LLM判断AI比例高({ai_percentage:.0f}%)")
+    elif ai_percentage > 60:
+        ai_score += 5
+    
+    # 7. 完美引用格式检测 (学术文本额外10分)
+    if text_type == 'academic' and text:
+        # 检测完美引用格式
+        perfect_citations = re.findall(r'\([A-Z][a-z]+\s+et\s+al\.,\s+\d{4}\)', text)
+        if len(perfect_citations) >= 1:
+            ai_score += 10
+            indicators.append("引用格式过于完美")
+    
+    # 最终判断（降低阈值，提高检测灵敏度）
+    if ai_score >= 50:  # 从60降到50
+        likelihood = "高（AI生成可能性大）"
+        confidence = "高"
+    elif ai_score >= 35:  # 从40降到35
+        likelihood = "中（可能为AI生成）"
+        confidence = "中"
+    else:
+        likelihood = "低（更可能为人类写作）"
+        confidence = "低"
+    
+    return {
+        'ai_likelihood': likelihood,
+        'ai_score': ai_score,
+        'confidence': confidence,
+        'key_indicators': indicators,
+        'thresholds_used': text_type
+    }
 
 async def analyze_segment_comprehensive(segment: str) -> Dict[str, Any]:
-    """综合分析文本片段，计算困惑度和获取LLM评估"""
+    """综合分析文本片段，计算困惑度、AI评分和获取LLM评估"""
     print(f"分析段落: {segment}")
     if len(segment.strip()) < 20:  # 跳过过短的片段
         return {
@@ -427,47 +979,86 @@ async def analyze_segment_comprehensive(segment: str) -> Dict[str, Any]:
             print(f"为段落计算困惑度时出错: {str(e)}")
             perplexity = 25.0  # 返回中等困惑度作为降级方案
         
-        # 根据困惑度推断初步AI可能性
-        if perplexity < 20:
-            ai_likelihood = "高（AI生成可能性大）"
-            initial_ai_judgment = True
-        elif perplexity < 30:
-            ai_likelihood = "中（可能为AI生成）"
-            initial_ai_judgment = perplexity < 25  # 25作为中等值的分界点
-        else:
-            ai_likelihood = "低（更可能为人类写作）"
-            initial_ai_judgment = False
+        # 计算爆发度
+        try:
+            burstiness_result = compute_multi_level_burstiness(segment)
+        except Exception as e:
+            print(f"计算爆发度时出错: {str(e)}")
+            burstiness_result = {'paragraph_burstiness': 0.5}
         
-        # 将困惑度和初步判断作为上下文传递给LLM进行分析
+        # 检测平行结构
+        try:
+            parallel_structures = detect_parallel_structures(segment)
+        except Exception as e:
+            print(f"检测平行结构时出错: {str(e)}")
+            parallel_structures = {'score': 0}
+        
+        # 检测AI词汇
+        try:
+            ai_vocab_result = detect_ai_vocabulary_enhanced(segment)
+        except Exception as e:
+            print(f"检测AI词汇时出错: {str(e)}")
+            ai_vocab_result = {'density': 0}
+        
+        # 计算AI评分
+        text_type = detect_text_type(segment)
+        ai_score_result = estimate_ai_likelihood_v2(
+            text=segment,
+            perplexity=perplexity,
+            burstiness_result=burstiness_result,
+            parallel_structures=parallel_structures,
+            ai_vocab_result=ai_vocab_result,
+            style=1.0,
+            ai_percentage=0,  # Changed from None to 0 for initial segment analysis
+            segment_count=1,
+            text_type=text_type
+        )
+        
+        ai_score = ai_score_result['ai_score']
+        ai_likelihood = ai_score_result['ai_likelihood']
+        
+        # 根据AI评分判断初步结果
+        # 降低阈值：40分及以上倾向于判定为AI（原来是50分，太保守）
+        initial_ai_judgment = ai_score >= 40
+        
+        # 将所有指标作为上下文传递给LLM进行分析
         context = {
             "perplexity": perplexity,
-            "initial_likelihood": ai_likelihood,
+            "ai_score": ai_score,
+            "ai_likelihood": ai_likelihood,
+            "key_indicators": ai_score_result.get('key_indicators', []),
             "initial_judgment": initial_ai_judgment
         }
         
-        # 使用LLM客户端分析文本，将困惑度作为上下文传入
+        # 使用LLM客户端分析文本，将所有指标作为上下文传入
         try:
             is_ai_generated, reason = await llm_client.analyze_text(segment, context=context)
         except Exception as e:
             print(f"调用LLM客户端分析文本时出错: {str(e)}")
-            # 当LLM分析失败时，使用困惑度来进行基本判断
+            # 当LLM分析失败时，使用AI评分来进行基本判断
             is_ai_generated = initial_ai_judgment
-            reason = f"LLM分析失败，基于困惑度({perplexity:.2f})推断: {str(e)}"
+            reason = f"LLM分析失败，基于AI评分({ai_score}/100)推断: {str(e)}"
         
-        # 最终判断说明逻辑（修改为根据LLM判断调整AI可能性）
-        final_ai_likelihood = ai_likelihood  # 先使用初步判断作为默认值
+        # 最终判断说明逻辑
+        final_ai_likelihood = ai_likelihood
         
-        # 当LLM判断与困惑度计算结果矛盾时
-        if is_ai_generated and "低（更可能为人类写作）" in ai_likelihood:
-            # LLM认为是AI但困惑度高，调整ai_likelihood
-            final_ai_likelihood = "中（可能为AI生成）"  # 修改为中等可能性
-            if "困惑度" not in reason:
-                reason += f"（注意：LLM判断为AI生成，但困惑度为{perplexity:.2f}，较高）"
-        elif not is_ai_generated and "高（AI生成可能性大）" in ai_likelihood:
-            # LLM认为是人类但困惑度低，调整ai_likelihood
-            final_ai_likelihood = "中（可能为AI生成）"  # 修改为中等可能性
-            if "困惑度" not in reason:
-                reason += f"（注意：LLM判断为人类创作，但困惑度为{perplexity:.2f}，非常低）"
+        # 如果LLM判断与AI评分有明显矛盾，以AI评分为准并调整
+        # 降低阈值：40分就应该判定为AI（之前是50分，太保守导致漏检）
+        if not is_ai_generated and ai_score >= 40:
+            # LLM认为是人类但AI评分较高，强制判定为AI生成
+            is_ai_generated = True
+            if ai_score >= 60:
+                final_ai_likelihood = "高（AI生成可能性大）"
+            else:
+                final_ai_likelihood = "中（可能为AI生成）"
+            reason += f" [系统修正: AI评分{ai_score}/100较高，判定为AI生成]"
+            print(f"⚠️ 修正判断：LLM认为是人类但AI评分{ai_score}≥40，强制判定为AI生成")
+        elif is_ai_generated and ai_score < 25:
+            # LLM认为是AI但评分很低，调整为人类创作
+            is_ai_generated = False
+            final_ai_likelihood = "低（更可能为人类写作）"
+            reason += f" [系统修正: AI评分{ai_score}/100较低，判定为人类创作]"
+            print(f"⚠️ 修正判断：LLM认为是AI但AI评分{ai_score}<30，调整为人类创作")
         
         return {
             "paragraph": segment,
@@ -587,16 +1178,192 @@ async def detect_ai_content_comprehensive(text: str) -> Dict[str, Any]:
                 if avg_perplexity < 20:
                     print(f"注意: 全部段落被判为人类但困惑度非常低({avg_perplexity})")
         
-        # 估计整体AI生成可能性
-        ai_likelihood = estimate_ai_likelihood(avg_perplexity, style_score, ai_percentage, segment_count)
+        # ===== 新增：使用增强版检测方法 =====
         
-        # 返回最终分析结果
+        # 1. 识别文本类型
+        text_type = detect_text_type(text)
+        print(f"检测到文本类型: {text_type}")
+        
+        # 2. 多层次爆发度检测
+        try:
+            burstiness_result = compute_multi_level_burstiness(text)
+            print(f"爆发度检测完成 - 段落级: {burstiness_result.get('paragraph_burstiness', 0):.3f}, "
+                  f"子句级: {burstiness_result.get('min_clause_burstiness', 'N/A')}")
+        except Exception as e:
+            print(f"计算爆发度失败: {str(e)}")
+            burstiness_result = None
+        
+        # 3. 平行结构检测
+        try:
+            parallel_structures = detect_parallel_structures(text)
+            print(f"平行结构检测完成 - 得分: {parallel_structures.get('total_score', 0)}")
+        except Exception as e:
+            print(f"平行结构检测失败: {str(e)}")
+            parallel_structures = None
+        
+        # 4. AI词汇检测
+        try:
+            ai_vocab_result = detect_ai_vocabulary_enhanced(text)
+            print(f"AI词汇检测完成 - 密度: {ai_vocab_result.get('ai_vocabulary_density', 0):.1%}")
+        except Exception as e:
+            print(f"AI词汇检测失败: {str(e)}")
+            ai_vocab_result = None
+        
+        # 5. 使用增强版判断逻辑
+        ai_likelihood_result = estimate_ai_likelihood_v2(
+            text=text,
+            perplexity=avg_perplexity,
+            burstiness_result=burstiness_result,
+            parallel_structures=parallel_structures,
+            ai_vocab_result=ai_vocab_result,
+            style=style_score,
+            ai_percentage=ai_percentage,
+            segment_count=segment_count,
+            text_type=text_type
+        )
+        
+        print(f"最终AI评分: {ai_likelihood_result['ai_score']}/100")
+        print(f"判断结果: {ai_likelihood_result['ai_likelihood']}")
+        print(f"关键指标: {ai_likelihood_result['key_indicators']}")
+        
+        # ===== 二次检测：解决整体评分与段落百分比不一致的问题 =====
+        overall_ai_score = ai_likelihood_result['ai_score']
+        
+        # 如果整体AI评分较高（≥60），但段落百分比较低，进行谨慎的二次检测
+        # 提高触发阈值：从50提高到60，减少误判
+        if overall_ai_score >= 60 and ai_percentage < 40:
+            print(f"⚠️ 检测到不一致：整体AI评分{overall_ai_score}/100，但段落AI比例仅{ai_percentage:.1f}%")
+            print(f"   启动二次检测：仅重新识别那些有明显AI特征但被漏判的段落")
+            
+            # 收集所有被判定为"人类"的段落，评估其AI倾向度
+            human_segments = []
+            for i, analysis in enumerate(detailed_analysis):
+                if not analysis.ai_generated:
+                    # 重新计算该段落的AI倾向度分数
+                    segment_text = analysis.paragraph
+                    
+                    # 计算段落的多项指标
+                    try:
+                        seg_perplexity = calculate_perplexity_corrected(segment_text)
+                    except:
+                        seg_perplexity = 50
+                    
+                    try:
+                        seg_burstiness = compute_multi_level_burstiness(segment_text)
+                        burstiness_score = seg_burstiness.get('paragraph_burstiness', 0.5)
+                    except:
+                        burstiness_score = 0.5
+                    
+                    try:
+                        seg_vocab = detect_ai_vocabulary_enhanced(segment_text)
+                        vocab_density = seg_vocab.get('ai_vocabulary_density', 0)
+                    except:
+                        vocab_density = 0
+                    
+                    # 计算综合AI倾向度分数（分数越低，越像AI）
+                    ai_tendency_score = (
+                        seg_perplexity * 0.4 +  # 困惑度越低越像AI
+                        burstiness_score * 40 +  # 爆发度越低越像AI
+                        (1 - vocab_density) * 30  # AI词汇密度越高越像AI
+                    )
+                    
+                    human_segments.append({
+                        'index': i,
+                        'analysis': analysis,
+                        'ai_tendency_score': ai_tendency_score,
+                        'perplexity': seg_perplexity,
+                        'burstiness': burstiness_score,
+                        'vocab_density': vocab_density
+                    })
+            
+            if human_segments:
+                # 按AI倾向度排序（分数越低，越像AI）
+                human_segments.sort(key=lambda x: x['ai_tendency_score'])
+                
+                # 只重新识别那些真正有明显AI特征的段落，不按比例凑数
+                # 设置严格的阈值标准
+                reidentified_count = 0
+                max_reidentify = max(3, int(segment_count * 0.15))  # 最多重新识别15%的段落
+                
+                for candidate in human_segments[:max_reidentify]:
+                    idx = candidate['index']
+                    old_analysis = candidate['analysis']
+                    
+                    # 严格的判定标准：必须满足多个条件才重新判定为AI
+                    is_strong_ai = False
+                    reasons = []
+                    
+                    # 条件1：极低困惑度（<25）
+                    if candidate['perplexity'] < 25:
+                        is_strong_ai = True
+                        reasons.append(f"困惑度极低({candidate['perplexity']:.1f})")
+                    
+                    # 条件2：低困惑度 + 低爆发度
+                    if candidate['perplexity'] < 35 and candidate['burstiness'] < 0.3:
+                        is_strong_ai = True
+                        reasons.append(f"困惑度低({candidate['perplexity']:.1f}) + 爆发度低({candidate['burstiness']:.3f})")
+                    
+                    # 条件3：高AI词汇密度 + 低困惑度
+                    if candidate['vocab_density'] > 0.15 and candidate['perplexity'] < 40:
+                        is_strong_ai = True
+                        reasons.append(f"AI词汇密度高({candidate['vocab_density']:.1%}) + 困惑度低({candidate['perplexity']:.1f})")
+                    
+                    # 只有满足严格条件的段落才重新标记
+                    if is_strong_ai:
+                        # 更新判定结果
+                        new_reason = (f"二次检测识别（整体评分{overall_ai_score}/100）："
+                                    f"{'; '.join(reasons)}，综合判定为AI生成")
+                        
+                        # 确定AI可能性级别
+                        if candidate['perplexity'] < 20:
+                            new_likelihood = "极高（几乎确定为AI生成）"
+                        elif candidate['perplexity'] < 30:
+                            new_likelihood = "高（AI生成可能性大）"
+                        else:
+                            new_likelihood = "中（可能为AI生成）"
+                        
+                        # 创建新的分析结果
+                        detailed_analysis[idx] = ParagraphAnalysis(
+                            paragraph=old_analysis.paragraph,
+                            ai_generated=True,  # 更新为AI生成
+                            reason=new_reason,
+                            perplexity=candidate['perplexity'],
+                            ai_likelihood=new_likelihood
+                        )
+                        
+                        reidentified_count += 1
+                        print(f"   ✓ 重新识别段落 #{idx+1}: {old_analysis.paragraph[:50]}... -> AI生成 ({'; '.join(reasons)})")
+                
+                if reidentified_count > 0:
+                    # 更新统计数据
+                    ai_segments_count += reidentified_count
+                    ai_percentage = (ai_segments_count / segment_count) * 100
+                    
+                    print(f"   二次检测完成：重新识别 {reidentified_count} 个有明显AI特征的段落")
+                    print(f"   更新后AI百分比: {ai_percentage:.1f}%")
+                    
+                    # 更新判断结果说明
+                    if 'key_indicators' in ai_likelihood_result:
+                        ai_likelihood_result['key_indicators'].insert(0, 
+                            f"通过二次检测重新识别了{reidentified_count}个具有明显AI特征的段落，AI比例从{(ai_segments_count-reidentified_count)/segment_count*100:.1f}%提升至{ai_percentage:.1f}%"
+                        )
+                else:
+                    print(f"   二次检测完成：未发现明显被漏判的AI段落")
+        
+        # 返回最终分析结果（增强版）
         return {
             "ai_percentage": round(ai_percentage, 2),
             "avg_perplexity": avg_perplexity,
             "style_consistency": round(style_score, 3),
-            "ai_likelihood": ai_likelihood,
-            "segment_count": segment_count,  # 添加段落数量信息
+            "ai_likelihood": ai_likelihood_result['ai_likelihood'],
+            "ai_score": ai_likelihood_result['ai_score'],  # 新增：数值评分
+            "confidence": ai_likelihood_result['confidence'],  # 新增：置信度
+            "key_indicators": ai_likelihood_result['key_indicators'],  # 新增：关键指标
+            "text_type": text_type,  # 新增：文本类型
+            "burstiness": burstiness_result,  # 新增：爆发度详情
+            "parallel_structures": parallel_structures,  # 新增：平行结构详情
+            "ai_vocabulary": ai_vocab_result,  # 新增：AI词汇详情
+            "segment_count": segment_count,
             "detailed_analysis": detailed_analysis
         }
     except Exception as e:

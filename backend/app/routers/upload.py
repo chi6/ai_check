@@ -23,7 +23,7 @@ async def upload_file(
     """
     # 验证文件
     if not validate_file(file):
-        raise HTTPException(status_code=400, detail="不支持的文件格式，请上传PDF、DOCX或TXT文件")
+        raise HTTPException(status_code=400, detail="不支持的文件格式，请上传PDF、DOC、DOCX或TXT文件")
     
     # 获取文件大小
     file.file.seek(0, os.SEEK_END)

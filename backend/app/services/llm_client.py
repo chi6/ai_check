@@ -3,6 +3,7 @@ import uuid
 import json
 import time
 import asyncio
+import re
 from volcenginesdkarkruntime import Ark
 from concurrent.futures import ThreadPoolExecutor
 
@@ -48,19 +49,78 @@ class LlmClient:
             print(f"调用LLM API时出错: {str(e)}")
             return None
     
-    async def analyze_text(self, text, is_ai_generated=False, context=None):
-        """
-        异步分析文本是否为AI生成，并提供原因
+    def _detect_text_type_simple(self, text: str) -> str:
+        """简单检测文本类型"""
+        academic_indicators = 0
+        text_lower = text.lower()
         
-        Args:
-            text: 要分析的文本
-            is_ai_generated: 是否已知是AI生成的内容
-            context: 可选的上下文信息，包含其他评估指标的数据
+        # 检测学术特征
+        if any(word in text_lower for word in ['research', 'study', 'analysis', 'findings']):
+            academic_indicators += 1
+        if 'et al' in text_lower or re.search(r'\(\w+,?\s+\d{4}\)', text):
+            academic_indicators += 1
+        if any(word in text_lower for word in ['furthermore', 'moreover', 'consequently']):
+            academic_indicators += 1
             
-        Returns:
-            (bool, str): 返回判断结果和原因
+        return 'academic' if academic_indicators >= 2 else 'general'
+    
+    def _create_academic_prompt(self) -> str:
+        """创建针对学术文本的检测提示词"""
+        return """你是一个专业的AI生成内容检测专家，专门识别由GPT-4、Claude、ChatGPT等现代AI模型生成的学术文本。
+
+🎯 针对学术文本，请重点关注以下AI生成特征：
+
+1. **过度规范的结构特征**（关键！）：
+   ❌ 平行结构使用过多（如：三个分号连接的平行子句）
+   ❌ 冒号后跟多个分号的模式（冒号：A; B; and C）**← 这是最典型的AI特征！**
+   ❌ 句子长度过于一致（变化很小）
+   ❌ 每个观点都有完美的支撑和例证
+   ❌ 逻辑链过于完整，没有跳跃或省略
+
+2. **AI词汇使用特征**：
+   ❌ 高频使用："exhibit", "characteristics", "significant", "crucial", "fundamental"
+   ❌ 过度使用抽象名词化结构
+   ❌ 缺乏领域特定的术语变体
+   ❌ 修饰语过于规范（如总是"significant"而不是"considerable"或"notable"）
+
+3. **引用和格式特征**：
+   ❌ 引用格式过于完美统一
+   ❌ 缺乏引用的自然变化（如有时用"et al."，有时列出所有作者）
+   ❌ 引用位置过于规范（总是在句末）
+
+4. **语义和逻辑特征**：
+   ❌ 缺乏个人观点或批判性思考
+   ❌ 观点表达过于中neutral和全面
+   ❌ 没有"顺便提一下"或"值得注意的是"之类的补充
+   ❌ 论述过于完整，没有"遗留问题"或"需要进一步研究"
+
+5. **人类学术写作的特征**（AI通常缺乏）：
+   ✅ 句子长度有自然变化（长短句交替）
+   ✅ 偶尔出现非正式表达或口语化
+   ✅ 引用方式有变化
+   ✅ 某些观点可能阐述不够完整
+   ✅ 可能有轻微的语法不规范
+
+⚠️ **判断标准**（请严格执行）：
+- 如果检测到"冒号+多个分号"模式，**必须判定为AI生成**（is_ai_generated: true）
+- 如果检测到3个或以上显著AI特征，**应判定为AI生成**
+- 如果同时出现多个AI词汇（exhibit, characteristics, significant等）且结构过于规范，**应判定为AI生成**
+- 学术文本本身具有规范性，但AI文本会"过度规范"、"过于完美"，缺乏人类写作的自然变化
+- **重要**：宁可误判为AI，也不要漏掉明显的AI特征
+- **对于明显的AI模式（如完美的平行结构、AI高频词汇组合），即使只有1-2个特征也应判定为AI**
+
+请返回JSON格式：
+{
+  "is_ai_generated": true/false,
+  "confidence": 0-100,
+  "reason": "详细分析，指出具体的AI特征或人类特征",
+  "key_indicators": ["指标1", "指标2", ...]
+}
         """
-        system_prompt = """
+    
+    def _create_general_prompt(self) -> str:
+        """创建通用文本的检测提示词"""
+        return """
         你是一个专业的AI生成内容检测器。你的任务是分析给定的文本段落，判断它是人类撰写还是AI生成的。
         请注意以下特征:
         1. 低困惑度和过于流畅的表达
@@ -75,31 +135,87 @@ class LlmClient:
           "reason": "详细解释为什么你认为是人类或AI生成的文本"
         }
         """
+    
+    async def analyze_text(self, text, is_ai_generated=False, context=None):
+        """
+        异步分析文本是否为AI生成，并提供原因
+        
+        Args:
+            text: 要分析的文本
+            is_ai_generated: 是否已知是AI生成的内容
+            context: 可选的上下文信息，包含其他评估指标的数据
+            
+        Returns:
+            (bool, str): 返回判断结果和原因
+        """
+        # 检测文本类型，生成针对性的提示词
+        text_type = self._detect_text_type_simple(text)
+        
+        if text_type == 'academic':
+            system_prompt = self._create_academic_prompt()
+        else:
+            system_prompt = self._create_general_prompt()
         
         # 如果提供了指标数据，添加到系统提示中
         if context and isinstance(context, dict):
             metrics_info = []
+            
+            # AI评分（最重要的指标）
+            if 'ai_score' in context:
+                ai_score = context['ai_score']
+                metrics_info.append(f"**AI评分: {ai_score}/100**")
+                
+                if ai_score >= 60:
+                    metrics_info.append("  → 评分较高，强烈倾向于AI生成")
+                elif ai_score >= 50:
+                    metrics_info.append("  → 评分中等偏高，倾向于AI生成")
+                elif ai_score >= 40:
+                    metrics_info.append("  → 评分中等，可能是AI生成")
+                else:
+                    metrics_info.append("  → 评分较低，更可能是人类写作")
+            
+            # AI可能性评估
+            if 'ai_likelihood' in context:
+                metrics_info.append(f"初步判断: {context['ai_likelihood']}")
+            
+            # 关键指标
+            if 'key_indicators' in context and context['key_indicators']:
+                metrics_info.append("\n检测到的关键AI特征:")
+                for indicator in context['key_indicators']:
+                    metrics_info.append(f"  • {indicator}")
+            
+            # 困惑度
             if 'perplexity' in context:
                 perplexity = context['perplexity']
-                metrics_info.append(f"文本困惑度(Perplexity): {perplexity:.2f}")
+                metrics_info.append(f"\n困惑度(Perplexity): {perplexity:.2f}")
                 
-                # 添加困惑度解释
                 if perplexity < 20:
-                    metrics_info.append("- 困惑度非常低，高度可能是AI生成的文本")
+                    metrics_info.append("  → 困惑度非常低，支持AI生成判断")
                 elif perplexity < 30:
-                    metrics_info.append("- 困惑度中等偏低，可能是AI生成的文本")
+                    metrics_info.append("  → 困惑度中等偏低，可能是AI生成")
                 else:
-                    metrics_info.append("- 困惑度较高，更倾向于人类创作的文本")
+                    metrics_info.append("  → 困惑度较高，更倾向于人类创作")
             
-            if 'initial_likelihood' in context:
-                metrics_info.append(f"初步AI可能性评估: {context['initial_likelihood']}")
-                
             if 'burstiness' in context:
-                metrics_info.append(f"计算出的爆发度(Burstiness): {context['burstiness']:.2f} (值低表示可能是AI生成)")
+                metrics_info.append(f"爆发度(Burstiness): {context['burstiness']:.2f} (值低表示可能是AI生成)")
             
             if metrics_info:
                 metrics_text = "\n".join(metrics_info)
-                system_prompt += f"\n\n我们已经预先计算了一些指标数据，请将其纳入你的综合判断：\n{metrics_text}\n\n请综合考虑上述指标和你自己的文本分析，给出最终判断结果和理由。"
+                guidance = """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 **预计算的量化指标**
+{metrics_text}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**判断指导**（重要，请严格遵守）：
+- 如果AI评分≥40，**倾向于判定为AI生成**（is_ai_generated: true）
+- 如果AI评分≥50且检测到关键AI特征，**必须判定为AI生成**
+- 如果AI评分≥60，**强烈判定为AI生成**，除非有明确的人类写作证据
+- 特别是如果检测到"冒号+多个分号"、"平行结构"、"子句级爆发度极低"，这些都是**强烈的AI信号**
+- 请以量化指标为主要依据，文本主观感受为辅助参考
+- **警告**：不要因为文本"读起来流畅"就判定为人类写作，AI生成的文本通常非常流畅！
+""".format(metrics_text=metrics_text)
+                system_prompt += guidance
         
         # 如果已知是AI生成的，添加这个信息到提示中
         if is_ai_generated:
