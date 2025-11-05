@@ -419,6 +419,8 @@ def detect_ai_vocabulary_enhanced(text: str) -> Dict[str, Any]:
     增强版AI词汇检测
     检测AI生成文本中常见的词汇模式
     """
+    import re  # 确保re模块在函数开始时导入
+    
     words = text.split()
     text_lower = text.lower()
     total_words = len(words)
@@ -441,7 +443,10 @@ def detect_ai_vocabulary_enhanced(text: str) -> Dict[str, Any]:
         'represents', 'enhances', 'contributes', 'facilitates',
         'serves', 'focuses', 'ensures', 'enables', 'supports',
         'avoids', 'prevents', 'addresses', 'summarized',
-        'identified', 'characterized', 'prioritized'
+        'identified', 'characterized', 'prioritized',
+        # 新增：AI常用的描述性词汇
+        'distinct', 'typical', 'various', 'numerous', 'multiple',
+        'particular', 'specific', 'certain', 'notable', 'prominent'
     ]
     
     for word in words:
@@ -486,29 +491,38 @@ def detect_ai_vocabulary_enhanced(text: str) -> Dict[str, Any]:
     # 4. 检测典型AI词汇组合（新增）
     results['ai_word_combinations'] = []
     
-    # 常见的AI词汇组合模式
+    # 常见的AI词汇组合模式 - 扩展更多典型组合
     ai_combinations = [
         ('exhibit', 'characteristics'),
+        ('exhibit', 'distinct'),
+        ('distinct', 'characteristics'),
         ('significant', 'impact'),
         ('crucial', 'role'),
         ('fundamental', 'importance'),
         ('demonstrates', 'effectiveness'),
         ('illustrates', 'significance'),
         ('highlights', 'importance'),
-        ('emphasizes', 'necessity')
+        ('emphasizes', 'necessity'),
+        ('typical', 'characteristics'),
+        ('various', 'aspects'),
+        ('multiple', 'factors')
     ]
     
+    # 使用更精确的模式匹配，检测词汇是否在相近位置出现（窗口大小：5个词）
     for word1, word2 in ai_combinations:
-        if word1 in text_lower and word2 in text_lower:
+        # 使用正则表达式检测两个词在5个词的窗口内出现
+        pattern = rf'\b{word1}\b(?:\s+\w+){{0,4}}\s+\b{word2}\b'
+        if re.search(pattern, text_lower):
             results['ai_word_combinations'].append(f'{word1}_{word2}')
-            results['total_ai_word_count'] += 2  # 组合权重更高
+            results['total_ai_word_count'] += 5  # 组合权重提高（原来是2，现在是5）
     
     # 检测"it is necessary to"等套话（额外权重）
     if any(phrase in text_lower for phrase in ['it is necessary to', 'it is important to note', 'it should be emphasized']):
         results['total_ai_word_count'] += 3  # 套话权重很高
     
-    # 5. 检测AI常用短语模式（新增）
+    # 5. 检测AI常用短语模式（增强版）
     ai_phrase_patterns = [
+        # 原有模式
         r'\bserves as\b',  # "serves as"
         r'\bfocuses on\b',  # "focuses on"
         r'\brepresents the\b',  # "represents the"
@@ -518,19 +532,34 @@ def detect_ai_vocabulary_enhanced(text: str) -> Dict[str, Any]:
         r'\bare summarized as follows\b',  # "are summarized as follows"
         r'\bis identified as\b',  # "is identified as"
         r'\bis characterized by\b',  # "is characterized by"
-        r'\bmust be prioritized\b'  # "must be prioritized"
+        r'\bmust be prioritized\b',  # "must be prioritized"
+        # 新增：典型的 AI 描述性短语
+        r'\bexhibit\s+(?:distinct|typical|various|certain|specific)\s+characteristics\b',  # "exhibit [形容词] characteristics"
+        r'\bdemonstrate\s+(?:significant|considerable|substantial)\s+(?:impact|effect|influence)\b',  # "demonstrate [形容词] impact"
+        r'\bplay\s+a\s+(?:crucial|vital|significant|key)\s+role\b',  # "play a [形容词] role"
+        r'\bmake\s+it\s+(?:necessary|essential|crucial|important)\s+to\b',  # "make it [形容词] to"
+        r'\bhas\s+been\s+(?:widely|extensively|commonly)\s+(?:recognized|acknowledged|accepted)\b',  # "has been [副词] recognized"
     ]
     
-    import re
     ai_phrase_count = 0
+    high_value_phrases = []  # 记录高价值短语
+    
     for pattern in ai_phrase_patterns:
         matches = re.findall(pattern, text_lower)
         if matches:
             ai_phrase_count += len(matches)
+            # 对于包含 "exhibit" 的短语，给予更高权重
+            if 'exhibit' in pattern:
+                high_value_phrases.extend(matches)
     
     if ai_phrase_count > 0:
-        results['total_ai_word_count'] += ai_phrase_count * 2  # 短语权重较高
+        base_weight = ai_phrase_count * 2
+        # 高价值短语额外加分
+        bonus_weight = len(high_value_phrases) * 3
+        results['total_ai_word_count'] += base_weight + bonus_weight
         results['ai_phrase_patterns'] = ai_phrase_count
+        if high_value_phrases:
+            results['high_value_ai_phrases'] = high_value_phrases
     
     return results
 
@@ -887,7 +916,7 @@ def estimate_ai_likelihood_v2(
             ai_score += 10
             indicators.append("检测到重复句式：The X Stage [动词] on")
     
-    # 4. AI词汇密度评分 (最高20分)
+    # 4. AI词汇密度评分 (最高30分 - 提高权重)
     if ai_vocab_result:
         vocab_density = ai_vocab_result.get('ai_vocabulary_density', 0)
         vocab_count = ai_vocab_result.get('total_ai_word_count', 0)
@@ -902,19 +931,28 @@ def estimate_ai_likelihood_v2(
             ai_score += 5
             indicators.append(f"AI词汇数量较多({vocab_count}个)")
         
-        # 检测AI词汇组合
+        # 检测AI词汇组合 - 提高权重
         ai_combinations = ai_vocab_result.get('ai_word_combinations', [])
         if ai_combinations:
-            ai_score += min(10, len(ai_combinations) * 5)
-            indicators.append(f"检测到AI词汇组合({len(ai_combinations)}个)")
+            combination_score = min(15, len(ai_combinations) * 8)  # 从5提高到8
+            ai_score += combination_score
+            # 列出检测到的组合
+            combo_list = ', '.join(ai_combinations[:3])
+            indicators.append(f"检测到AI典型词汇组合({len(ai_combinations)}个): {combo_list}")
         
-        # 检测AI短语模式（新增）
+        # 检测高价值AI短语（如 "exhibit distinct characteristics"）
+        high_value_phrases = ai_vocab_result.get('high_value_ai_phrases', [])
+        if high_value_phrases:
+            ai_score += 20  # 高价值短语直接加20分！
+            indicators.append(f"⚠️ 检测到AI高度典型短语: {', '.join(high_value_phrases[:2])}")
+        
+        # 检测AI短语模式
         ai_phrase_count = ai_vocab_result.get('ai_phrase_patterns', 0)
         if ai_phrase_count >= 3:
             ai_score += 15
             indicators.append(f"检测到大量AI短语模式({ai_phrase_count}个)")
         elif ai_phrase_count >= 1:
-            ai_score += 8
+            ai_score += 10  # 从8提高到10
             indicators.append(f"检测到AI短语模式({ai_phrase_count}个)")
     
     # 5. 风格一致性评分 (最高10分) - 权重降低
@@ -940,11 +978,11 @@ def estimate_ai_likelihood_v2(
             ai_score += 10
             indicators.append("引用格式过于完美")
     
-    # 最终判断（降低阈值，提高检测灵敏度）
-    if ai_score >= 50:  # 从60降到50
+    # 最终判断（进一步降低阈值，提高检测灵敏度）
+    if ai_score >= 40:  # 从50进一步降到40
         likelihood = "高（AI生成可能性大）"
         confidence = "高"
-    elif ai_score >= 35:  # 从40降到35
+    elif ai_score >= 30:  # 从35降到30
         likelihood = "中（可能为AI生成）"
         confidence = "中"
     else:
